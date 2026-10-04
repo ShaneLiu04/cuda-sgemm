@@ -72,21 +72,23 @@
 > 环境引导：项目内 `tools/env.cmd` 一键设置上述 PATH/INCLUDE/LIB；所有构建与测试命令通过它执行。
 > 冒烟证据：hello.cu（sm_75, -O3, FP32 kernel）编译执行输出正确；ncu/sanitizer --version 正常。
 
-## 5. -Xptxas -v 资源审计表（build.log 摘录）
+## 5. -Xptxas -v 资源审计表（build.log 实测摘录，sm_75 / CUDA 12.5.40 / MSVC 19.44，2026-10-04）
 
-> T002 构建后回填。预期（TEST_PLAN §2）：naive/coalesced ≤24 regs、smem1d ≤32、tile2d/vec4/cpasync 系列
-> 100–168 regs 且 **spill=0 硬门**（spill≠0 即缺陷）。sm_75 与 sm_89 寄存器文件规格相同（64K×32bit/SM），
-> 预期表可直接沿用。
+实测全部 **spill = 0**（AR004+ 硬门通过）。与 TEST_PLAN §2 预期对照：
 
-| kernel | regs/thread | spill (st/ld) | smem/block |
-|--------|-------------|---------------|-----------|
-| naive | `<待 T002>` | `<>` | `<>` |
-| coalesced | `<>` | `<>` | `<>` |
-| smem1d (bk=16) | `<>` | `<>` | `<>` |
-| tile2d (lb=1) | `<>` | `<>` | `<>` |
-| vec4 | `<>` | `<>` | `<>` |
-| cpasync | `<>` | `<>` | `<>` |
-| cpasync2 | `<>` | `<>` | `<>` |
+| kernel | regs/thread（实测） | spill (st/ld) | smem/block（实测） | TEST_PLAN 预期 |
+|--------|-------------|---------------|-----------|------|
+| naive | 50 | 0/0 | 0 | ≤24（实测偏高：64 位索引乘法 + 谓词；无 spill 无 stack，非缺陷，记录取舍） |
+| coalesced | 50 | 0/0 | 0 | ≤24（同上） |
+| smem1d (bk=8/16/32) | 72 | 0/0 | 2688 / 4864 / 9216 B | ≤32 regs, ~4.9KB（bk16 实测 4.75KB ✓；regs 72 高于预期但无 spill） |
+| tile2d (lb=1 和 2) | 114 | **0/0** | 10880 B | 100–168 regs ✓，~10.9KB ✓ |
+| vec4 | 128 | **0/0** | 8320 B | 100–168 regs ✓，~8.4KB ✓ |
+| cpasync (甲) | 139 | **0/0** | 20480 B | 100–168 regs ✓，~16.6KB（实测 20KB，padding/双缓冲布局差异，如实记录） |
+| cpasync2 (乙) | 125 | **0/0** | 16640 B | ~16.9KB ✓ |
+
+> 注：naive/coalesced/smem1d 的 regs 高于 TEST_PLAN 预估，因寄存器上限（64K/SM）远未触顶且
+> spill=0，按"记录取舍"处理（AGENTS.md §4.4 只把 spill 判为缺陷）。tile2d/vec4/cpasync 系列
+> `__launch_bounds__(256,1)` 生效，全部落在预期区间。
 
 ## 6. 环境漂移记录（每次正式测量会话追加）
 

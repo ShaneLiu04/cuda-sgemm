@@ -36,15 +36,16 @@ if(NOT GIT_RC EQUAL 0)
 endif()
 add_compile_definitions(GIT_SHA="${GIT_SHA}")
 
-# CUDA 专属编译选项：-lineinfo（ncu Source 关联）+ -Xptxas -v（寄存器/smem 审计）
+# CUDA 专属编译选项：-lineinfo（ncu Source 关联）+ -Xptxas=-v（寄存器/smem 审计）
 add_compile_options(
     $<$<COMPILE_LANGUAGE:CUDA>:-lineinfo>
-    $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas>-v
+    $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas=-v>
+    $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/utf-8>
+    $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4828>
 )
 
-# 明确排除快速数学（防止上层工具链注入；严格 FP32 军规）
-check_cxx_compiler_flag("" _dummy)  # no-op，保持模块纯净
-remove_definitions(-use_fast_math)
+# 严格 FP32 军规（AGENTS.md §3）：构建全程禁止 -use_fast_math。
+# 本 CMakeLists 不显式传入任何快速数学选项；若未来注入，由 CI/审查 grep 构建命令把关。
 
 set(KERNEL_SOURCES
     src/sgemm_naive.cu

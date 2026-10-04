@@ -1,0 +1,146 @@
+[1/18] Building CUDA object CMakeFiles\sgemm_bench.dir\src\sgemm_coalesced.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN51_GLOBAL__N__2dd19405_18_sgemm_coalesced_cu_0141b79922sgemm_coalesced_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN51_GLOBAL__N__2dd19405_18_sgemm_coalesced_cu_0141b79922sgemm_coalesced_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 50 registers, 388 bytes cmem[0]
+sgemm_coalesced.cu
+tmpxft_00002cc0_00000000-10_sgemm_coalesced.cudafe1.cpp
+[2/18] Building CUDA object CMakeFiles\sgemm_bench.dir\src\sgemm_naive.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN47_GLOBAL__N__e1d4fbe9_14_sgemm_naive_cu_a70282d218sgemm_naive_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN47_GLOBAL__N__e1d4fbe9_14_sgemm_naive_cu_a70282d218sgemm_naive_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 50 registers, 388 bytes cmem[0]
+sgemm_naive.cu
+tmpxft_00003824_00000000-10_sgemm_naive.cudafe1.cpp
+[3/18] Building CUDA object CMakeFiles\sgemm_bench.dir\src\sgemm_vec4.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__acc87f88_13_sgemm_vec4_cu_2ef60d3b17sgemm_vec4_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__acc87f88_13_sgemm_vec4_cu_2ef60d3b17sgemm_vec4_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 128 registers, 8320 bytes smem, 388 bytes cmem[0]
+sgemm_vec4.cu
+tmpxft_0000493c_00000000-10_sgemm_vec4.cudafe1.cpp
+[4/18] Building CUDA object CMakeFiles\sgemm_test.dir\src\sgemm_naive.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN47_GLOBAL__N__e1d4fbe9_14_sgemm_naive_cu_a70282d218sgemm_naive_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN47_GLOBAL__N__e1d4fbe9_14_sgemm_naive_cu_a70282d218sgemm_naive_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 50 registers, 388 bytes cmem[0]
+sgemm_naive.cu
+tmpxft_000012b8_00000000-10_sgemm_naive.cudafe1.cpp
+[5/18] Building CUDA object CMakeFiles\sgemm_test.dir\src\sgemm_coalesced.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN51_GLOBAL__N__2dd19405_18_sgemm_coalesced_cu_0141b79922sgemm_coalesced_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN51_GLOBAL__N__2dd19405_18_sgemm_coalesced_cu_0141b79922sgemm_coalesced_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 50 registers, 388 bytes cmem[0]
+sgemm_coalesced.cu
+tmpxft_000021c4_00000000-10_sgemm_coalesced.cudafe1.cpp
+[6/18] Building CUDA object CMakeFiles\sgemm_test.dir\src\sgemm_vec4.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__acc87f88_13_sgemm_vec4_cu_2ef60d3b17sgemm_vec4_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__acc87f88_13_sgemm_vec4_cu_2ef60d3b17sgemm_vec4_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 128 registers, 8320 bytes smem, 388 bytes cmem[0]
+sgemm_vec4.cu
+tmpxft_00002fd4_00000000-10_sgemm_vec4.cudafe1.cpp
+[7/18] Building CUDA object CMakeFiles\sgemm_bench.dir\src\sgemm_smem_1d.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi16EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi16EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, 4864 bytes smem, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi32EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi32EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, 9216 bytes smem, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi8EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi8EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, 2688 bytes smem, 388 bytes cmem[0]
+sgemm_smem_1d.cu
+tmpxft_00005150_00000000-10_sgemm_smem_1d.cudafe1.cpp
+[8/18] Building CUDA object CMakeFiles\sgemm_test.dir\src\sgemm_2d_tile.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi1EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi1EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 114 registers, 10880 bytes smem, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi2EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi2EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 114 registers, 10880 bytes smem, 388 bytes cmem[0]
+sgemm_2d_tile.cu
+tmpxft_000030f0_00000000-10_sgemm_2d_tile.cudafe1.cpp
+[9/18] Building CUDA object CMakeFiles\sgemm_bench.dir\src\sgemm_2d_tile.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi1EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi1EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 114 registers, 10880 bytes smem, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi2EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi2EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 114 registers, 10880 bytes smem, 388 bytes cmem[0]
+sgemm_2d_tile.cu
+tmpxft_00005008_00000000-10_sgemm_2d_tile.cudafe1.cpp
+[10/18] Building CUDA object CMakeFiles\sgemm_test.dir\src\sgemm_cpasync.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 125 registers, 16640 bytes smem, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 139 registers, 20480 bytes smem, 388 bytes cmem[0]
+sgemm_cpasync.cu
+tmpxft_00005238_00000000-10_sgemm_cpasync.cudafe1.cpp
+[11/18] Building CUDA object CMakeFiles\sgemm_bench.dir\src\sgemm_cpasync.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 125 registers, 16640 bytes smem, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 139 registers, 20480 bytes smem, 388 bytes cmem[0]
+sgemm_cpasync.cu
+tmpxft_000055ac_00000000-10_sgemm_cpasync.cudafe1.cpp
+[12/18] Building CUDA object CMakeFiles\sgemm_test.dir\src\sgemm_smem_1d.cu.obj
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi16EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi16EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, 4864 bytes smem, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi32EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi32EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, 9216 bytes smem, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi8EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi8EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, 2688 bytes smem, 388 bytes cmem[0]
+sgemm_smem_1d.cu
+tmpxft_00004a9c_00000000-10_sgemm_smem_1d.cudafe1.cpp
+[13/18] Building CUDA object CMakeFiles\sgemm_bench.dir\src\cublas_baseline.cu.obj
+ptxas info    : 0 bytes gmem
+cublas_baseline.cu
+tmpxft_00003aac_00000000-10_cublas_baseline.cudafe1.cpp
+[14/18] Building CUDA object CMakeFiles\sgemm_test.dir\src\cublas_baseline.cu.obj
+ptxas info    : 0 bytes gmem
+cublas_baseline.cu
+tmpxft_000042d8_00000000-10_cublas_baseline.cudafe1.cpp
+[15/18] Building CUDA object CMakeFiles\sgemm_test.dir\tests\test_correctness.cu.obj
+ptxas info    : 0 bytes gmem
+test_correctness.cu
+tmpxft_00004fe0_00000000-10_test_correctness.cudafe1.cpp
+[16/18] Building CUDA object CMakeFiles\sgemm_bench.dir\src\main.cu.obj
+ptxas info    : 0 bytes gmem
+main.cu
+tmpxft_00003b84_00000000-10_main.cudafe1.cpp
+[17/18] Linking CUDA executable sgemm_test.exe
+[18/18] Linking CUDA executable sgemm_bench.exe

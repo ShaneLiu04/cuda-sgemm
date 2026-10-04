@@ -1,9 +1,8 @@
 @echo off
 REM =====================================================================
-REM tools/env.cmd — cuda-sgemm 组装工具链引导（免管理员，机器相关）
-REM 详见 results/environment.md §4。用法（在项目根）：
-REM   cmd /c "tools\env.cmd && cmake -B build ..."
-REM 所有构建/测试/benchmark 命令必须经本脚本设置环境。
+REM tools/env.cmd - cuda-sgemm assembled toolchain bootstrap (no-admin, machine-specific)
+REM See results/environment.md section 4. Usage from project root:
+REM   cmd /c "call tools\env.cmd && cmake -B build ..."
 REM =====================================================================
 set CSG_TOOLS=C:\Users\l30086046\csg-tools
 call "%CSG_TOOLS%\msvc\devcmd.bat"

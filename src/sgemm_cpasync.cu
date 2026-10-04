@@ -1,4 +1,4 @@
-// =====================================================================
+﻿// =====================================================================
 // sgemm_cpasync.cu — Kernel 5：cp.async 双缓冲流水（AR006）
 // ---------------------------------------------------------------
 // 提供两个可消融的布局方案（AR006 T003 要求实测定稿）：
@@ -83,7 +83,7 @@ __device__ __forceinline__ void store_c(float* C, const float c[TM][TN],
 // 方案甲：A、B 全 cp.async 直拷
 // =====================================================================
 __global__ __launch_bounds__(256)
-sgemm_cpasync_kernel(const float* __restrict__ A,
+void sgemm_cpasync_kernel(const float* __restrict__ A,
                      const float* __restrict__ B,
                      float* __restrict__ C,
                      int M, int N, int K) {
@@ -125,11 +125,11 @@ sgemm_cpasync_kernel(const float* __restrict__ A,
         // B：16B 沿 N，swizzle 写入（物理单位 = 逻辑单位 ^ (krow&7)）
         {
             const bool valid = (k0 + ld_b_krow < K) && (b_glb_col < N);
-            float* dst = &reinterpret_cast<float4*>(&Bs[buf][ld_b_krow][0])
+            float4* dst = &reinterpret_cast<float4*>(&Bs[buf][ld_b_krow][0])
                               [ld_b_unit ^ (ld_b_krow & 7)];
             const float* src = valid
                 ? B + (long long)(k0 + ld_b_krow) * N + b_glb_col : B;
-            cp_async16(dst, src, valid);
+            cp_async16(reinterpret_cast<float*>(dst), src, valid);
         }
     };
 
@@ -170,7 +170,7 @@ sgemm_cpasync_kernel(const float* __restrict__ A,
 // 方案乙：A 用 float4+转置写入（寄存器预取）；B 用 cp.async+swizzle
 // =====================================================================
 __global__ __launch_bounds__(256)
-sgemm_cpasync_v2_kernel(const float* __restrict__ A,
+void sgemm_cpasync_v2_kernel(const float* __restrict__ A,
                         const float* __restrict__ B,
                         float* __restrict__ C,
                         int M, int N, int K) {
@@ -217,11 +217,11 @@ sgemm_cpasync_v2_kernel(const float* __restrict__ A,
     auto issue_b_tile = [&](int t, int buf) {
         const int k0 = t * BK;
         const bool valid = (k0 + ld_b_krow < K) && (b_glb_col < N);
-        float* dst = &reinterpret_cast<float4*>(&Bs[buf][ld_b_krow][0])
-                          [ld_b_unit ^ (ld_b_krow & 7)];
+        float4* dst = &reinterpret_cast<float4*>(&Bs[buf][ld_b_krow][0])
+                           [ld_b_unit ^ (ld_b_krow & 7)];
         const float* src = valid
             ? B + (long long)(k0 + ld_b_krow) * N + b_glb_col : B;
-        cp_async16(dst, src, valid);
+        cp_async16(reinterpret_cast<float*>(dst), src, valid);
     };
 
     issue_b_tile(0, 0);

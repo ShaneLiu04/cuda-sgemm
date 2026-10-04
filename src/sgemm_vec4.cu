@@ -1,4 +1,4 @@
-// =====================================================================
+﻿// =====================================================================
 // sgemm_vec4.cu — Kernel 4：float4 向量化（AR005）
 // ---------------------------------------------------------------
 // 在 2D 寄存器分块（128x128x8, 8x8）骨架上做三处 16B 向量化：
@@ -42,7 +42,7 @@ __device__ __forceinline__ float4 load_zero_guard(const float* base, long long i
 }
 
 __global__ __launch_bounds__(256)
-sgemm_vec4_kernel(const float* __restrict__ A,
+void sgemm_vec4_kernel(const float* __restrict__ A,
                   const float* __restrict__ B,
                   float* __restrict__ C,
                   int M, int N, int K) {
