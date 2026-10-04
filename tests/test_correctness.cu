@@ -1,0 +1,193 @@
+// =====================================================================
+// test_correctness.cu — 全 kernel × 全测试矩阵 一键正确性回归（AR001 T003）
+// ---------------------------------------------------------------
+// 判据（详设 §4.4）：max|C_gpu - C_ref| / max(|C_ref|, eps) <= 1e-4
+// 参考：
+//   * CPU double 累加（小尺寸，且用于 cuBLAS 行主序换算的自校验）
+//   * cuBLAS FP32（全尺寸，经自校验后才可信）
+// 测试矩阵（冻结）：
+//   4096^3（主场景）/ 1024^3 / 256^3（快速回归）/ 1000x1016x1024（非方阵）/
+//   1023x1024x511（边界：非 tile 对齐且 K%4!=0 → 触发 vec4/cpasync 回退）/
+//   130x257x66（边界：N%4!=0 → 回退路径专项）/
+//   64x64x1（K 退化）/ 1x1x1 / 17x33x65（微小奇尺寸）
+// 路径覆盖：--verbose 时 launcher 打印 "scalar fallback"，输出表格标注
+//   每个尺寸实际走的路径（GPU 环境可 grep 断言）。
+// 退出码：任一 FAIL -> 非零（CI 可用）。
+// =====================================================================
+#include "common.h"
+#include "sgemm_kernels.h"
+
+#include <cstdio>
+#include <vector>
+
+namespace {
+
+// ---- CPU double 参考（i-k-j 序，cache 友好）----
+void sgemm_cpu_double(const std::vector<float>& A, const std::vector<float>& B,
+                      std::vector<double>& C, int M, int N, int K) {
+    C.assign((size_t)M * N, 0.0);
+    for (int i = 0; i < M; ++i)
+        for (int kk = 0; kk < K; ++kk) {
+            const double a = A[(size_t)i * K + kk];
+            for (int j = 0; j < N; ++j)
+                C[(size_t)i * N + j] += a * B[(size_t)kk * N + j];
+        }
+}
+
+struct CaseResult {
+    bool pass = false;
+    double max_abs = 0.0, rel = 0.0;
+    double max_abs_cpu = 0.0, rel_cpu = 0.0;
+    bool has_cpu_ref = false;
+};
+
+// 对比辅助：返回 {max_abs, rel}
+std::pair<double, double> compare(const std::vector<float>& got,
+                                  const std::vector<double>& ref) {
+    double max_abs = 0.0, max_ref = 0.0;
+    for (size_t i = 0; i < ref.size(); ++i) {
+        double d = std::fabs((double)got[i] - ref[i]);
+        if (d > max_abs) max_abs = d;
+        double r = std::fabs(ref[i]);
+        if (r > max_ref) max_ref = r;
+    }
+    return {max_abs, max_abs / (max_ref > 1e-30 ? max_ref : 1e-30)};
+}
+
+CaseResult run_case(int kernel_id, int M, int N, int K, bool with_cpu_ref) {
+    CaseResult res;
+
+    // 设备内存与输入
+    float *dA, *dB, *dC;
+    CUDA_CHECK(cudaMalloc(&dA, (size_t)M * K * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&dB, (size_t)K * N * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&dC, (size_t)M * N * sizeof(float)));
+
+    std::vector<float> hA((size_t)M * K), hB((size_t)K * N);
+    sgemm::init_matrix_host(hA.data(), hA.size(), 7u);
+    sgemm::init_matrix_host(hB.data(), hB.size(), 8u);
+    CUDA_CHECK(cudaMemcpy(dA, hA.data(), hA.size() * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(dB, hB.data(), hB.size() * sizeof(float), cudaMemcpyHostToDevice));
+
+    // ---- 参考 1：cuBLAS FP32 ----
+    std::vector<float> ref_f((size_t)M * N);
+    sgemm_cublas(dA, dB, dC, M, N, K);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaMemcpy(ref_f.data(), dC, ref_f.size() * sizeof(float), cudaMemcpyDeviceToHost));
+
+    // ---- 参考 2（小尺寸）：CPU double（同时自校验 cuBLAS 行主序换算）----
+    std::vector<double> ref_d;
+    if (with_cpu_ref) sgemm_cpu_double(hA, hB, ref_d, M, N, K);
+
+    // ---- 待测 kernel ----
+    CUDA_CHECK(cudaMemset(dC, 0, (size_t)M * N * sizeof(float)));
+    if (sgemm::g_verbose) {
+        std::printf("    [%s] %dx%dx%d dispatch:\n", sgemm::kernel_name(kernel_id), M, N, K);
+    }
+    sgemm::kernel_fn(kernel_id)(dA, dB, dC, M, N, K);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    cudaError_t err = cudaGetLastError();
+    std::vector<float> got((size_t)M * N);
+    CUDA_CHECK(cudaMemcpy(got.data(), dC, got.size() * sizeof(float), cudaMemcpyDeviceToHost));
+
+    if (err != cudaSuccess) {
+        std::printf("    [ERROR] kernel launch: %s\n", cudaGetErrorString(err));
+        cudaFree(dA); cudaFree(dB); cudaFree(dC);
+        return res;   // pass=false
+    }
+
+    // 与 cuBLAS FP32 对比
+    std::vector<double> ref_d_f(ref_f.begin(), ref_f.end());
+    auto r1 = compare(got, ref_d_f);
+    res.max_abs = r1.first;
+    res.rel = r1.second;
+
+    // 与 CPU double 对比（若启用）
+    if (with_cpu_ref) {
+        auto r2 = compare(got, ref_d);
+        res.max_abs_cpu = r2.first;
+        res.rel_cpu = r2.second;
+        res.has_cpu_ref = true;
+    }
+
+    res.pass = (res.rel <= 1e-4) &&
+               (!res.has_cpu_ref || res.rel_cpu <= 1e-4);
+
+    cudaFree(dA); cudaFree(dB); cudaFree(dC);
+    return res;
+}
+
+struct TestCase {
+    int m, n, k;
+    const char* note;
+    bool cpu_ref;   // M*N*K <= ~2^28 时启用 CPU double 参考
+};
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    // --verbose 透传给 launcher 的回退路径打印（路径覆盖断言用）
+    for (int i = 1; i < argc; ++i)
+        if (std::string(argv[i]) == "--verbose") sgemm::g_verbose = true;
+
+    std::printf("==================================================================\n");
+    std::printf(" cuda-sgemm correctness suite | git=%s\n", GIT_SHA);
+    std::printf(" tolerance: max|C-C_ref| / max|C_ref| <= 1e-4\n");
+    std::printf("==================================================================\n");
+
+    // 测试矩阵（详设 §4.4 + 微小退化用例；cpu_ref 阈值按算量取舍）
+    const std::vector<TestCase> cases = {
+        {4096, 4096, 4096, "main scene",            false},
+        {1024, 1024, 1024, "fast regression",       false},
+        {256,   256,   256, "fast regression",       true},
+        {1000, 1016, 1024, "non-square",            false},
+        {1023, 1024,  511, "edge: no tile align, K%4!=0 -> fallback", true},
+        {130,   257,   66, "edge: N%4!=0 -> fallback",                 true},
+        {64,     64,    1, "degenerate K=1",         true},
+        {1,       1,    1, "degenerate 1x1x1",       true},
+        {17,     33,   65, "tiny odd sizes",         true},
+    };
+
+    int total = 0, passed = 0;
+    bool all_ok = true;
+
+    for (int kid = 0; kid < sgemm::KERNEL_COUNT; ++kid) {
+        const char* kname = sgemm::kernel_name(kid);
+        std::printf("------------------------------------------------------------------\n");
+        std::printf(" kernel: %s\n", kname);
+        std::printf("------------------------------------------------------------------\n");
+        for (const auto& tc : cases) {
+            ++total;
+            CaseResult r = run_case(kid, tc.m, tc.n, tc.k, tc.cpu_ref);
+            if (r.pass) ++passed;
+            else all_ok = false;
+            std::printf("  %4dx%4dx%4d  %-42s  max_abs=%.3e rel=%.3e",
+                        tc.m, tc.n, tc.k, tc.note, r.max_abs, r.rel);
+            if (r.has_cpu_ref)
+                std::printf("  (vs CPU: abs=%.3e rel=%.3e)", r.max_abs_cpu, r.rel_cpu);
+            std::printf("  %s\n", r.pass ? "PASS" : "FAIL");
+        }
+    }
+
+    // cuBLAS 行主序换算自校验（详设 §4.2 义务）：在两个小尺寸 vs CPU double
+    std::printf("------------------------------------------------------------------\n");
+    std::printf(" cublas row-major self-check (vs CPU double)\n");
+    {
+        const int sizes[][3] = {{256, 256, 256}, {100, 253, 61}};
+        for (auto& s : sizes) {
+            ++total;
+            CaseResult r = run_case(sgemm::K_CUBLAS, s[0], s[1], s[2], true);
+            // 只看 vs CPU 的判据（cublas vs cublas 恒等，无意义）
+            r.pass = r.has_cpu_ref && r.rel_cpu <= 1e-4;
+            if (r.pass) ++passed; else all_ok = false;
+            std::printf("  %4dx%4dx%4d  vs CPU double rel=%.3e  %s\n",
+                        s[0], s[1], s[2], r.rel_cpu, r.pass ? "PASS" : "FAIL");
+        }
+    }
+
+    std::printf("==================================================================\n");
+    std::printf(" SUMMARY: %d / %d PASS  ->  %s\n", passed, total,
+                all_ok ? "ALL PASS" : "FAILED");
+    std::printf("==================================================================\n");
+    return all_ok ? 0 : EXIT_FAILURE;
+}

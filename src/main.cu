@@ -1,0 +1,183 @@
+// =====================================================================
+// main.cu — sgemm_bench 入口：CLI 路由 / 正确性抽查 / benchmark / CSV
+// ---------------------------------------------------------------
+// CLI（冻结于 AR001，详设 §3）：
+//   --kernel naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|cublas|all
+//   --m --n --k --warmup --iters --check --csv --bk --lb --verbose
+// 输出：终端摘要 + （--csv）追加 results/performance.csv（详设 §4.3 schema）
+// =====================================================================
+#include "common.h"
+#include "sgemm_kernels.h"
+
+#include <cstdio>
+#include <vector>
+
+namespace {
+
+// 一次性分配/释放的 RAII 帮助器
+struct DeviceBuffers {
+    float *A = nullptr, *B = nullptr, *C = nullptr;
+    int M, N, K;
+    DeviceBuffers(int m, int n, int k) : M(m), N(n), K(k) {
+        CUDA_CHECK(cudaMalloc(&A, (size_t)m * k * sizeof(float)));
+        CUDA_CHECK(cudaMalloc(&B, (size_t)k * n * sizeof(float)));
+        CUDA_CHECK(cudaMalloc(&C, (size_t)m * n * sizeof(float)));
+    }
+    void fill(unsigned seed) {
+        const size_t nA = (size_t)M * K, nB = (size_t)K * N;
+        std::vector<float> h(nA > nB ? nA : nB);
+        sgemm::init_matrix_host(h.data(), nA, seed);
+        CUDA_CHECK(cudaMemcpy(A, h.data(), nA * sizeof(float), cudaMemcpyHostToDevice));
+        sgemm::init_matrix_host(h.data(), nB, seed + 1);
+        CUDA_CHECK(cudaMemcpy(B, h.data(), nB * sizeof(float), cudaMemcpyHostToDevice));
+    }
+    ~DeviceBuffers() {
+        cudaFree(A);
+        cudaFree(B);
+        cudaFree(C);
+    }
+};
+
+// 正确性抽查：与 cuBLAS FP32 对比（判据详设 §4.4：rel <= 1e-4）
+bool quick_check(int kernel_id, int M, int N, int K) {
+    DeviceBuffers buf(M, N, K);
+    buf.fill(1234u);
+
+    // 参考：cuBLAS FP32
+    std::vector<float> ref((size_t)M * N);
+    sgemm_cublas(buf.A, buf.B, buf.C, M, N, K);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaMemcpy(ref.data(), buf.C, ref.size() * sizeof(float),
+                          cudaMemcpyDeviceToHost));
+
+    // 待测 kernel
+    CUDA_CHECK(cudaMemset(buf.C, 0, ref.size() * sizeof(float)));
+    sgemm::kernel_fn(kernel_id)(buf.A, buf.B, buf.C, M, N, K);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        std::printf("    [CHECK] kernel launch error: %s\n", cudaGetErrorString(err));
+        return false;
+    }
+    std::vector<float> got(ref.size());
+    CUDA_CHECK(cudaMemcpy(got.data(), buf.C, got.size() * sizeof(float),
+                          cudaMemcpyDeviceToHost));
+
+    double max_abs = 0.0, max_ref = 0.0;
+    const size_t total = ref.size();
+    for (size_t i = 0; i < total; ++i) {
+        double d = std::fabs((double)got[i] - (double)ref[i]);
+        if (d > max_abs) max_abs = d;
+        double r = std::fabs((double)ref[i]);
+        if (r > max_ref) max_ref = r;
+    }
+    const double rel = max_abs / (max_ref > 1e-30 ? max_ref : 1e-30);
+    const bool pass = rel <= 1e-4;
+    std::printf("    [CHECK] max_abs=%.6e  max_rel=%.6e  -> %s\n",
+                max_abs, rel, pass ? "PASS" : "FAIL");
+    return pass;
+}
+
+// 单 kernel benchmark（含预热、events 计时、CSV 落盘）
+void bench_one(int kernel_id, const sgemm::CliOptions& opt) {
+    const std::string name = sgemm::kernel_name(kernel_id);
+    const std::string state_before = sgemm::query_gpu_state();
+
+    DeviceBuffers buf(opt.m, opt.n, opt.k);
+    buf.fill(42u);
+
+    SgemmFn fn = sgemm::kernel_fn(kernel_id);
+    float *A = buf.A, *B = buf.B, *C = buf.C;
+    int M = opt.m, N = opt.n, K = opt.k;
+
+    auto launch = [&]() { fn(A, B, C, M, N, K); };
+    sgemm::TimingStats st = sgemm::time_kernel(launch, opt.warmup, opt.iters);
+    CUDA_CHECK(cudaGetLastError());
+
+    const double gf = sgemm::gflops_of(opt.m, opt.n, opt.k, st.ms_median);
+    const double dram_gbs =
+        sgemm::theoretical_min_dram_bytes(opt.m, opt.n, opt.k) /
+        (st.ms_median * 1e6);   // 等效带宽下限（真实流量以 ncu 为准）
+    const std::string state_after = sgemm::query_gpu_state();
+
+    std::printf("%-9s  %4dx%4dx%4d  median %10.4f ms  min %10.4f  max %10.4f  "
+                "RSD %5.2f%%  %9.2f GFLOPS  (>=min BW %7.1f GB/s)\n",
+                name.c_str(), opt.m, opt.n, opt.k,
+                st.ms_median, st.ms_min, st.ms_max, st.rsd, gf, dram_gbs);
+    std::printf("           gpu_state before[%s] after[%s]\n",
+                state_before.c_str(), state_after.c_str());
+
+    if (opt.csv) {
+        // regs/smem 注记来自 build.log（-Xptxas -v），此处标记获取方式
+        sgemm::append_csv_row("results/performance.csv", name,
+                              opt.m, opt.n, opt.k, st, gf,
+                              "see build.log", state_after);
+    }
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    sgemm::CliOptions opt = sgemm::parse_cli(argc, argv);
+    if (opt.help) {
+        sgemm::print_usage(argv[0]);
+        return 0;
+    }
+
+    // 全局消融旋钮注入
+    sgemm::g_verbose = opt.verbose;
+    if (opt.kernel == "smem1d") sgemm::g_smem1d_bk = opt.bk;
+    if (opt.kernel == "tile2d") sgemm::g_tile2d_min_blocks = opt.lb;
+
+    // 环境信息头（AGENTS.md §5：每次输出附版本信息）
+    int drv = 0, rt = 0;
+    cudaDriverGetVersion(&drv);
+    cudaRuntimeGetVersion(&rt);
+    sgemm::GpuInfo info = sgemm::query_gpu_info();
+    std::printf("# cuda-sgemm bench | git=%s | driver=%d.%d | runtime=%d.%d\n",
+                GIT_SHA, drv / 1000, drv % 1000, rt / 1000, rt % 1000);
+    std::printf("# GPU: %s | %d SMs | boost %.0f MHz | %.1f GiB | state[%s]\n",
+                info.name.c_str(), info.num_sms, info.clock_khz / 1000.0,
+                info.total_mem / (1024.0 * 1024.0 * 1024.0),
+                sgemm::query_gpu_state().c_str());
+
+    if (opt.list_kernels) {
+        std::printf("registered kernels:\n");
+        for (int i = 0; i < sgemm::KERNEL_COUNT; ++i)
+            std::printf("  %2d  %s\n", i, sgemm::kernel_name(i));
+        return 0;
+    }
+
+    const int kid = sgemm::kernel_id(opt.kernel);
+    if (kid < 0 && opt.kernel != "all") {
+        std::fprintf(stderr, "[CLI_ERROR] unknown kernel: %s (try --list-kernels)\n",
+                     opt.kernel.c_str());
+        return EXIT_FAILURE;
+    }
+
+    if (opt.check) {
+        std::printf("== correctness check vs cuBLAS FP32 (rel tolerance 1e-4) ==\n");
+        bool all_pass = true;
+        if (opt.kernel == "all") {
+            for (int i = 0; i < sgemm::KERNEL_COUNT; ++i) {
+                std::printf("  [%s]\n", sgemm::kernel_name(i));
+                all_pass &= quick_check(i, opt.m, opt.n, opt.k);
+            }
+        } else {
+            all_pass = quick_check(kid, opt.m, opt.n, opt.k);
+        }
+        if (!all_pass) {
+            std::printf("== CHECK FAILED ==\n");
+            return EXIT_FAILURE;
+        }
+        std::printf("== CHECK PASSED ==\n");
+    }
+
+    std::printf("== benchmark (warmup %d, iters %d) ==\n", opt.warmup, opt.iters);
+    if (opt.kernel == "all") {
+        for (int i = 0; i < sgemm::KERNEL_COUNT; ++i) bench_one(i, opt);
+    } else {
+        bench_one(kid, opt);
+    }
+    return 0;
+}

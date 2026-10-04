@@ -1,0 +1,4 @@
+# cuda-sgemm benchmark log
+# schema 说明见 specs/component-detail-design/cuda_sgemm_spec.md §4.3
+# 本文件由 sgemm_bench --csv 自动追加；git sha / GPU 状态随行记录。
+kernel,m,n,k,ms_median,ms_min,ms_max,ms_mean,rsd_pct,gflops,regs_smem_note,gpu_state(sm_mhz,temp_c,power_w),git_sha,timestamp
