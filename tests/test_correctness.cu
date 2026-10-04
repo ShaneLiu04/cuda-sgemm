@@ -84,7 +84,15 @@ CaseResult run_case(int kernel_id, int M, int N, int K, bool with_cpu_ref) {
     if (sgemm::g_verbose) {
         std::printf("    [%s] %dx%dx%d dispatch:\n", sgemm::kernel_name(kernel_id), M, N, K);
     }
-    sgemm::kernel_fn(kernel_id)(dA, dB, dC, M, N, K);
+    SgemmFn fn = sgemm::kernel_fn(kernel_id);
+    if (!fn) {
+        // Red 状态可观察：kernel 未接入注册表 → 该格 FAIL（非崩溃）
+        std::printf("    [ERROR] kernel '%s' not registered (fn=nullptr)\n",
+                    sgemm::kernel_name(kernel_id));
+        cudaFree(dA); cudaFree(dB); cudaFree(dC);
+        return res;   // pass=false
+    }
+    fn(dA, dB, dC, M, N, K);
     CUDA_CHECK(cudaDeviceSynchronize());
     cudaError_t err = cudaGetLastError();
     std::vector<float> got((size_t)M * N);
