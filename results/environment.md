@@ -38,7 +38,8 @@
 | boost 时钟 | 1815 MHz（cudaDeviceProp::clockRate=1815000 kHz；nvidia-smi 最大 SM 时钟 2100 MHz） | deviceQuery |
 | 空闲时钟 | SM 300 MHz / Mem 405 MHz（探测时 37°C, 13.5W, P8） | nvidia-smi |
 | 理论 FP32 峰值 | **11.15 TFLOPS**（2 × 3072 × 1.815 GHz） | 按实测 boost 频率计算 |
-| 理论 DRAM 带宽 | 448.1 GB/s | 按显存规格计算；实测标定（E10 大拷贝 kernel）待 AR003 后补 |
+| 理论 DRAM 带宽 | 448.1 GB/s | 按显存规格计算 |
+| 实测可达 DRAM 带宽 | **375.7 GB/s**（83.8% 理论值） | E10 标定（2026-10-04）：1 GiB D2D 拷贝 ×20 取最优，CUDA events 计时 |
 | L2 cache | 4 MB | deviceQuery |
 | smem/block | 48 KB（每 SM 64 KB 可配） | deviceQuery |
 | 寄存器 | 64K × 32bit / block / SM | deviceQuery |
@@ -95,3 +96,6 @@
 | 日期 | 会话目的 | 室温/机况 | 频率范围 | 备注 |
 |------|---------|----------|---------|------|
 | 2026-10-04 | T001 探测 + 工具链组装 | 37°C 空闲 / P8 | SM 300 MHz（空闲） | 探测会话，无正式测量 |
+| 2026-10-04 | T006 正式 benchmark（4096³ naive+cublas 各 3 轮 ×100 iters） | 60–76°C / 66–225 W | SM 1845–1920 MHz（稳态） | naive RSD 0.47–0.60% ✓；cublas RSD 8.76–9.55% 超标，归因：功耗墙振荡（185–225 W≈230 W cap）+ WDDM 无锁频（策略 B 已知代价），median 跨轮一致（13.94/14.26/14.37 ms），取中位 14.26 ms 有效 |
+| 2026-10-04 | §8 sanitizer（memcheck 全套件 + racecheck cpasync×2） | — | — | memcheck 0 errors（8 kernel × 9 尺寸）；racecheck 0 hazards |
+| 2026-10-04 | E10 带宽标定 | D2D 拷贝稳态 | — | 375.7 GB/s（20 轮最优 5.715 ms/GiB） |
