@@ -19,17 +19,23 @@
 
 ---
 
-## 2. 运行环境（占位符由 AR001/T001 实测回填）
+## 2. 运行环境（AR001/T001 已实测回填，2026-10-04）
 
-| 项 | 值 |
+> **⚠️ 环境偏差声明**：本工程原设计目标机为 RTX 4060 Laptop（sm_89, Ada）。实际执行机为
+> **Quadro RTX 5000（sm_75, Turing）**，经用户批准继续（2026-10-04），全量偏差分析与处理原则见
+> `results/environment.md` §0。要点：构建 `-arch=sm_75`；**绝对性能门（§4.6 各版本目标 GFLOPS 数值）
+> 作废，改用相对门**（vs 本机 cuBLAS FP32 实测百分比 + 相邻版本加速比）；cp.async 硬件指令在 sm_75
+> 不存在（需 sm_80+），AR006 的 `__pipeline_memcpy_async` 将退化为同步拷贝，如实归档。
+
+| 项 | 值（实测） |
 |----|-----|
-| GPU | NVIDIA RTX 4060 Laptop GPU（AD107，3072 CUDA cores，8GB GDDR6） |
-| SM 架构 | sm_89（Ada），48 SM，每 SM 128 FP32 lanes，64KB smem/SM 可配，寄存器 64K×32bit/SM |
-| 理论 FP32 峰值 | `<按实测 boost 频率计算，如 2.37GHz → ~14.5 TFLOPS>`（以 nvidia-smi 实测为准） |
-| TGP 档位 | `<nvidia-smi -q -d POWER 输出>` |
-| 驱动版本 | `<nvidia-smi --query-gpu=driver_version>` |
-| CUDA Toolkit | `<nvcc --version>`（≥ 11.8，建议 12.x，需含 ncu 与 compute-sanitizer） |
-| 时钟策略 | `<锁定频率值 或 "稳态预热策略">`（AGENTS.md §5.3） |
+| GPU | NVIDIA Quadro RTX 5000（TU104 GL，3072 CUDA cores，16GB GDDR6 256-bit @7001MHz = 448.1 GB/s） |
+| SM 架构 | sm_75（Turing），48 SM，每 SM 64 FP32 lanes，64KB smem/SM 可配，寄存器 64K×32bit/SM，L2 4MB |
+| 理论 FP32 峰值 | **11.15 TFLOPS**（2 × 3072 × 1.815 GHz boost，deviceQuery 实测 clockRate=1815000kHz） |
+| TGP 档位 | 固定 230W（Default=Max=230W，Min=125W，无 Dynamic Boost） |
+| 驱动版本 | 556.18（WDDM 模式） |
+| CUDA Toolkit | nvcc 12.5.40（官方 redist 免管理员组装）+ ncu 2024.2.0.0 + compute-sanitizer 2024.2.0.0（详见 results/environment.md §4） |
+| 时钟策略 | **方案 B：稳态预热**（WDDM + 无管理员权限，`-lgc` 不可用；RSD ≤ 5% 稳态判据；同会话内相对比较有效） |
 
 ---
 

@@ -1,41 +1,86 @@
-# results/environment.md — 环境基线报告（模板）
+# results/environment.md — 环境基线报告（AR001/T001 实测）
 
-> 由 AR001/T001 在 GPU 环境执行 `docs/TEST_PLAN.md` §1 后填写；
-> 填写后同步回填 `specs/component-detail-design/cuda_sgemm_spec.md` §2 占位符。
 > 本文件是全部性能数据的环境上下文，**缺失本文件的 benchmark 数据不可引用**。
+> 探测时间：2026-10-04；探测人：AI Agent（用户批准的免管理员工具链组装 + RTX 5000 继续方案）。
+
+## 0. ⚠️ 环境偏差声明（必读）
+
+**本机 GPU 不是详设假设的 RTX 4060 Laptop（sm_89, Ada），而是 Quadro RTX 5000（sm_75, Turing）。**
+经用户批准（2026-10-04），本工程在以下偏差条件下继续，处理原则 = 数据真实性军规（如实记录，禁止美化学数字）：
+
+| 偏差项 | 详设假设（RTX 4060） | 本机实测（RTX 5000） | 影响与处理 |
+|--------|---------------------|---------------------|-----------|
+| 架构 | sm_89（Ada） | **sm_75（Turing）** | 构建改 `-arch=sm_75`；详设 §4.6 cp.async 路径在 sm_75 **无硬件支持**（cp.async 指令需 sm_80+），AR006 的 `__pipeline_memcpy_async` 将由 CUDA 头文件退化为同步拷贝——正确性可验、性能特征不同，届时如实归档 |
+| 绝对性能门 | 按 RTX 4060 推导（naive 113.55 GF 等） | 本机理论 FP32 峰值 11.15 TF（≠13.3 TF） | **绝对门作废，改用相对门**：① 各版本 vs 本机 cuBLAS FP32 实测百分比；② 相邻版本加速比。绝对值仅作参考记录 |
+| L2 | 32MB（Ada） | 4MB（Turing） | AR003+ 的 tile 复用收益可能更明显（L2 命中率基线更低），以 ncu 实测为准 |
+| 显存 | 8GB | 16GB | 4096³ 无影响 |
+| 时钟控制 | 假设可 `-lgc` | WDDM 模式 + 无管理员权限，`-lgc` 不可用 | 时钟策略强制走 **方案 B（稳态预热）**，见 §3 |
 
 ## 1. 硬件与驱动（`nvidia-smi -q` 摘录）
 
 | 项 | 值 |
 |----|-----|
-| GPU 型号 | `<NVIDIA RTX 4060 Laptop GPU>` |
-| TGP 档位 | `<nvidia-smi -q -d POWER：如 35W-115W Dynamic Boost>` |
-| 显存 | `<8GB GDDR6, ...bit @ ...GB/s>` |
-| 驱动版本 | `<>` |
-| CUDA Toolkit | `<nvcc --version>` |
-| ncu / compute-sanitizer | `<版本>` |
+| GPU 型号 | NVIDIA Quadro RTX 5000（Turing TU104 GL，桌面工作站卡） |
+| TGP 档位 | 固定 230.00 W（Default=Max=230 W，Min 可调下限 125 W；无 Dynamic Boost） |
+| 显存 | 16 GB GDDR6，256-bit @ 7001 MHz（等效 14 Gbps）→ 理论带宽 **448.1 GB/s** |
+| 驱动版本 | 556.18（CUDA 12.5 runtime 兼容） |
+| 驱动模式 | WDDM（Windows 显示驱动模式，非 TCC） |
+| CUDA Toolkit | nvcc release 12.5, V12.5.40（Build cuda_12.5.r12.5/compiler.34177558_0） |
+| ncu / compute-sanitizer | Nsight Compute 2024.2.0.0 (build 34181891) / 2024.2.0.0 (build 34165569) |
+| OS | Windows（PowerShell 5.1，无管理员权限，无 winget/choco） |
 
-## 2. 实测规格
+## 2. 实测规格（deviceQuery 实测，2026-10-04）
 
 | 项 | 值 | 测量方法 |
 |----|-----|---------|
-| SM 数量 | `<>` | sgemm_bench 启动头自动打印 |
-| boost 时钟 | `<MHz>` | cudaDeviceProp::clockRate |
-| 实测稳态时钟 | `<MHz>` | nvidia-smi dmon 长跑采样（E13） |
-| 理论 FP32 峰值 | `<TFLOPS = 2 × cores × freq>` | 按实测频率计算 |
-| 实测峰值 DRAM 带宽 | `<GB/s>` | 大拷贝 kernel 标定（E10） |
+| SM 数量 | 48 | cudaDeviceProp::multiProcessorCount |
+| 架构 | sm_75，每 SM 64 FP32 lanes（3072 cores 总计） | cudaDeviceProp + 架构手册 |
+| boost 时钟 | 1815 MHz（cudaDeviceProp::clockRate=1815000 kHz；nvidia-smi 最大 SM 时钟 2100 MHz） | deviceQuery |
+| 空闲时钟 | SM 300 MHz / Mem 405 MHz（探测时 37°C, 13.5W, P8） | nvidia-smi |
+| 理论 FP32 峰值 | **11.15 TFLOPS**（2 × 3072 × 1.815 GHz） | 按实测 boost 频率计算 |
+| 理论 DRAM 带宽 | 448.1 GB/s | 按显存规格计算；实测标定（E10 大拷贝 kernel）待 AR003 后补 |
+| L2 cache | 4 MB | deviceQuery |
+| smem/block | 48 KB（每 SM 64 KB 可配） | deviceQuery |
+| 寄存器 | 64K × 32bit / block / SM | deviceQuery |
+| warp / 最大线程/SM | 32 / 1024 | deviceQuery |
 
 ## 3. 时钟策略（AGENTS.md §5.3）
 
-- [ ] 方案 A：固定时钟 `nvidia-smi -lgc <freq>`，锁频值 = `<MHz`
-- [ ] 方案 B：稳态预热（说明预热轮数与稳态判据）
-- 监控方式：`nvidia-smi dmon -s puc -d 1` 采样归档路径：`<>`
+- [x] **方案 B：稳态预热**（唯一可行：WDDM + 无管理员权限，`nvidia-smi -lgc` 不可用）
+  - 预热协议：每次正式测量前 warmup ≥ 20 次（bench 程序内置），并以 **2 × 100 次预跑** 驱动 GPU 进入稳态；
+  - 稳态判据：RSD ≤ 5%（AGENTS.md §5.1/§5.2）；超限复测 3 次取中位并记录频率/温度；
+  - 无锁频声明：本机所有数字均为**未锁频 WDDM 测量**，绝对值可比性弱于锁频环境；同会话内相对比较（kernel vs kernel）有效。
+- 监控方式：每次测量前后 `nvidia-smi --query-gpu=clocks.sm,temperature.gpu,power.draw --format=csv` 落入 CSV `gpu_state` 列；正式 benchmark 会话另用 `nvidia-smi dmon -s puc -d 1` 采样归档到 `results/dmon_<date>.log`（T006 执行）。
 
-## 4. -Xptxas -v 资源审计表（build.log 摘录）
+## 4. 工具链组装记录（免管理员用户空间方案，2026-10-04）
+
+本机无系统级 CUDA Toolkit / MSVC / git（曾有 CUDA 12.5 安装但仅剩 version.json 与 MSBuild 残留）。
+经用户批准，以下组件**全部以官方发行包组装到用户目录**，未触碰系统：
+
+| 组件 | 版本 | 来源 | 位置 |
+|------|------|------|------|
+| nvcc（含 cicc/ptxas/nvlink/nvvm/libdevice） | 12.5.40 | NVIDIA 官方 redist zip（cuda_nvcc-windows-x86_64-12.5.40-archive.zip） | `C:\Users\l30086046\csg-tools\cuda-toolkit\` |
+| cudart（头/lib/dll） | 12.5.39 | 同上（cuda_cudart-…-archive.zip） | 同上（合并树） |
+| cuBLAS（头/lib/dll，含 cublas.lib 导入库） | 12.5.2.13 | 同上（libcublas-…-archive.zip） | 同上（合并树） |
+| MSVC Build Tools（cl.exe 14.44.35207 + WinSDK 10.0.26100） | VS 2022 工具链 | PortableBuildTools v2.10.2（微软官方包源，免管理员解包） | `C:\Users\l30086046\csg-tools\msvc\`（入口 `devcmd.bat`） |
+| Nsight Compute（ncu.exe） | 2024.2.0.0 | NVIDIA 官方 redist zip | `C:\Users\l30086046\csg-tools\cuda\ncu-root\...\target\windows-desktop-win7-x64\` |
+| compute-sanitizer | 2024.2.0.0 | NVIDIA 官方 redist zip | 同上目录 |
+| git | 2.50.1.windows.1 | MinGit portable（git-for-windows GitHub release） | `C:\Users\l30086046\csg-tools\git\` |
+| cmake | 4.4.2 | 系统已有 | PATH |
+| 构建 junction | — | mklink /J（绕过项目路径非 ASCII 字符【】对 nvcc/MSVC 的兼容风险） | `C:\Users\l30086046\csg-work` → 项目根 |
+
+> 环境引导：项目内 `tools/env.cmd` 一键设置上述 PATH/INCLUDE/LIB；所有构建与测试命令通过它执行。
+> 冒烟证据：hello.cu（sm_75, -O3, FP32 kernel）编译执行输出正确；ncu/sanitizer --version 正常。
+
+## 5. -Xptxas -v 资源审计表（build.log 摘录）
+
+> T002 构建后回填。预期（TEST_PLAN §2）：naive/coalesced ≤24 regs、smem1d ≤32、tile2d/vec4/cpasync 系列
+> 100–168 regs 且 **spill=0 硬门**（spill≠0 即缺陷）。sm_75 与 sm_89 寄存器文件规格相同（64K×32bit/SM），
+> 预期表可直接沿用。
 
 | kernel | regs/thread | spill (st/ld) | smem/block |
 |--------|-------------|---------------|-----------|
-| naive | `<>` | `<>` | `<>` |
+| naive | `<待 T002>` | `<>` | `<>` |
 | coalesced | `<>` | `<>` | `<>` |
 | smem1d (bk=16) | `<>` | `<>` | `<>` |
 | tile2d (lb=1) | `<>` | `<>` | `<>` |
@@ -43,8 +88,8 @@
 | cpasync | `<>` | `<>` | `<>` |
 | cpasync2 | `<>` | `<>` | `<>` |
 
-## 5. 环境漂移记录（每次正式测量会话追加）
+## 6. 环境漂移记录（每次正式测量会话追加）
 
 | 日期 | 会话目的 | 室温/机况 | 频率范围 | 备注 |
 |------|---------|----------|---------|------|
-| `<>` | `<>` | `<>` | `<>` | `<>` |
+| 2026-10-04 | T001 探测 + 工具链组装 | 37°C 空闲 / P8 | SM 300 MHz（空闲） | 探测会话，无正式测量 |

@@ -1,19 +1,14 @@
 # 构建产物
 build/
 build.log
-*.o
 *.obj
+*.exp
+*.lib
 *.exe
 
-# ncu 二进制报告（体积大，不入库；其导出的 csv/txt 指标数据入库）
-profile/**/*.ncu-rep
+# ncu 原始报告本地留存（TEST_PLAN §9：csv/details.txt 提交，.ncu-rep 忽略）
+*.ncu-rep
 
-# 运行时性能数据随代码提交（数据真实性军规），不在此忽略；
-# results/performance.csv、environment.md、bottleneck_analysis.md 均应入库。
-
-# IDE / 系统
-.vscode/
-.idea/
-*.swp
+# Python / 系统
+__pycache__/
 Thumbs.db
-.DS_Store
