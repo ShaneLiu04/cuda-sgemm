@@ -1,10 +1,12 @@
 # 构建产物
 build/
-build.log
 *.obj
 *.exp
 *.lib
 *.exe
+
+# 测试套件本地输出（正式证据归档到 results/test_correctness_<date>.log）
+tests/suite_out.txt
 
 # ncu 原始报告本地留存（TEST_PLAN §9：csv/details.txt 提交，.ncu-rep 忽略）
 *.ncu-rep
