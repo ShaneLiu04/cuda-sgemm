@@ -24,7 +24,13 @@
 //          -> __syncthreads -> compute(t) -> __syncthreads
 //   两个 __syncthreads 保证：buf 交替写读无竞争（racecheck 抽查，AR006 T004）。
 // 主路径条件：N%4==0 且 K%4==0 且指针 16B 对齐；否则回退 tile2d（任意尺寸）。
-// 预期性能：~6.61 TFLOPS（≥97% cuBLAS FP32）；
+// 【本机现实（Quadro RTX 5000, sm_75）】cp.async 硬件指令需 sm_80+；
+//   本卡上 __pipeline_memcpy_async 由 CUDA 头文件退化为同步拷贝
+//   （正确性不变、racecheck 干净，但"异步隐藏延迟"收益不成立）——
+//   双缓冲流水退化为"双份 smem + 同步搬运"。
+// 本机实测（4096^3, 2026-10-04）：方案甲 5647.1 GFLOPS（vec4 的 0.88x，回退 12%）；
+//   方案乙 6279.7 GFLOPS（vec4 的 0.98x）——负结果的量化证据：
+//   无硬件 cp.async 时，双缓冲的 smem 翻倍 + 流水开销 > 其同步搬运收益。
 //   预期 stall 主因从 long scoreboard 转为 barrier/依赖等待（E9）。
 // =====================================================================
 #include "sgemm_kernels.h"

@@ -1,8 +1,8 @@
 # =====================================================================
 # CMakeLists.txt — cuda-sgemm 一键构建
-#   cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_ARCHITECTURES=89
+#   cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_ARCHITECTURES=75
 #   cmake --build build -j
-# 规则（AGENTS.md §3）：-O3 -std=c++17 -arch=sm_89 -lineinfo -Xptxas -v
+# 规则（AGENTS.md §3）：-O3 -std=c++17 -arch=sm_75 -lineinfo -Xptxas -v
 #   禁止 -use_fast_math（严格 FP32；FMA 合并默认允许）
 # 目标：sgemm_bench（CLI 入口）、sgemm_test（正确性回归）
 # =====================================================================
@@ -14,9 +14,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-# 默认 sm_89（RTX 4060 Laptop）；其他卡用 -DCMAKE_CUDA_ARCHITECTURES=xx 覆盖
+# 默认 sm_75（Quadro RTX 5000, Turing, 48 SM —— 本工程调优目标机）；
+# 其他卡用 -DCMAKE_CUDA_ARCHITECTURES=xx 覆盖
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    set(CMAKE_CUDA_ARCHITECTURES 89)
+    set(CMAKE_CUDA_ARCHITECTURES 75)
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -54,6 +55,10 @@ set(KERNEL_SOURCES
     src/sgemm_2d_tile.cu
     src/sgemm_vec4.cu
     src/sgemm_cpasync.cu
+    src/sgemm_swpipe.cu
+    src/sgemm_swpipe_sk.cu
+    src/sgemm_ws.cu
+    src/sgemm_auto.cu
     src/cublas_baseline.cu)
 
 add_executable(sgemm_bench src/main.cu ${KERNEL_SOURCES})

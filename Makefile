@@ -26,7 +26,7 @@ WARMUP ?= 20
 all: build
 
 build:
-	cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_ARCHITECTURES=89
+	cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_ARCHITECTURES=75
 	cmake --build $(BUILD_DIR) --config Release -j
 
 test: build

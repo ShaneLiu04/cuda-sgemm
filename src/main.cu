@@ -1,15 +1,16 @@
 ﻿// =====================================================================
 // main.cu — sgemm_bench 入口：CLI 路由 / 正确性抽查 / benchmark / CSV
 // ---------------------------------------------------------------
-// CLI（冻结于 AR001，详设 §3）：
-//   --kernel naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|cublas|all
-//   --m --n --k --warmup --iters --check --csv --bk --lb --verbose
+// CLI（冻结于 AR001，详设 §3；AR007 扩展 swpipe/--rounds）：
+//   --kernel naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|swpipe|cublas|all
+//   --m --n --k --warmup --iters --rounds --check --csv --bk --lb --verbose
 // 输出：终端摘要 + （--csv）追加 results/performance.csv（详设 §4.3 schema）
 // =====================================================================
 #include "common.h"
 #include "sgemm_kernels.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
 
 namespace {
@@ -91,7 +92,19 @@ void bench_one(int kernel_id, const sgemm::CliOptions& opt) {
     int M = opt.m, N = opt.n, K = opt.k;
 
     auto launch = [&]() { fn(A, B, C, M, N, K); };
-    sgemm::TimingStats st = sgemm::time_kernel(launch, opt.warmup, opt.iters);
+    sgemm::TimingStats st;
+    if (opt.rounds > 1) {
+        // 多轮门控（AR007）：跨轮 RSD>5% 自动追加（≤3 次），聚合取轮间 median
+        sgemm::MultiRoundStats mr =
+            sgemm::time_kernel_rounds(launch, opt.warmup, opt.iters, opt.rounds);
+        st = sgemm::merge_round_stats(mr);
+        std::printf("           rounds %d | per-round medians (ms):", mr.rounds);
+        for (double t : mr.round_ms) std::printf(" %.4f", t);
+        std::printf(" | cross-RSD %.2f%% (max within-round %.2f%%)\n",
+                    mr.cross_rsd, mr.max_within_rsd);
+    } else {
+        st = sgemm::time_kernel(launch, opt.warmup, opt.iters);
+    }
     CUDA_CHECK(cudaGetLastError());
 
     const double gf = sgemm::gflops_of(opt.m, opt.n, opt.k, st.ms_median);
@@ -108,8 +121,10 @@ void bench_one(int kernel_id, const sgemm::CliOptions& opt) {
                 state_before.c_str(), state_after.c_str());
 
     if (opt.csv) {
-        // regs/smem 注记来自 build.log（-Xptxas -v），此处标记获取方式
-        sgemm::append_csv_row("results/performance.csv", name,
+        // regs/smem 注记来自 build.log（-Xptxas -v），此处标记获取方式；
+        // SGEMM_CSV 环境变量可重定向落盘路径（run_matrix.ps1 消融分流用，默认不变）
+        const char* env_csv = std::getenv("SGEMM_CSV");
+        sgemm::append_csv_row(env_csv ? env_csv : "results/performance.csv", name,
                               opt.m, opt.n, opt.k, st, gf,
                               "see build.log", state_after);
     }
@@ -127,8 +142,32 @@ int main(int argc, char** argv) {
     // 全局消融旋钮注入
     sgemm::g_verbose = opt.verbose;
     if (opt.kernel == "smem1d") sgemm::g_smem1d_bk = opt.bk;
-    if (opt.kernel == "tile2d") sgemm::g_tile2d_min_blocks = opt.lb;
 
+    if (opt.kernel == "tile2d") sgemm::g_tile2d_min_blocks = opt.lb;
+    // swpipe/swsk：LB 消融已收窄（AR008 实测固化 128-reg/2-block 包络，见
+    // sgemm_swpipe.cu 注释），--lb 不再影响 swpipe/swsk
+    if (opt.kernel == "ws") {
+        // ws：--lb 双语义（tile2d/ws 共用旋钮位，详设 §4.6）+ --stages 环深度
+        //      + --wp producer warp 数（T008 消融三轴）
+        sgemm::g_ws_min_blocks = opt.lb;
+        sgemm::g_ws_stages     = opt.stages;
+        sgemm::g_ws_prod_warps = opt.wp;
+    } else if (opt.stages != 3) {
+        std::fprintf(stderr,
+                     "[note] --stages applies to kernel 'ws' only (ignored for '%s')\n",
+                     opt.kernel.c_str());
+    } else if (opt.wp != 2) {
+        std::fprintf(stderr,
+                     "[note] --wp applies to kernel 'ws' only (ignored for '%s')\n",
+                     opt.kernel.c_str());
+    }
+    if (opt.kernel == "swsk") {
+        sgemm::g_swsk_slices = opt.sk;
+    } else if (opt.sk != 4) {
+        std::fprintf(stderr,
+                     "[note] --sk applies to kernel 'swsk' only (ignored for '%s')\n",
+                     opt.kernel.c_str());
+    }
     // 环境信息头（AGENTS.md §5：每次输出附版本信息）
     int drv = 0, rt = 0;
     cudaDriverGetVersion(&drv);
@@ -173,7 +212,8 @@ int main(int argc, char** argv) {
         std::printf("== CHECK PASSED ==\n");
     }
 
-    std::printf("== benchmark (warmup %d, iters %d) ==\n", opt.warmup, opt.iters);
+    std::printf("== benchmark (warmup %d, iters %d, rounds %d) ==\n",
+                opt.warmup, opt.iters, opt.rounds);
     if (opt.kernel == "all") {
         for (int i = 0; i < sgemm::KERNEL_COUNT; ++i) bench_one(i, opt);
     } else {

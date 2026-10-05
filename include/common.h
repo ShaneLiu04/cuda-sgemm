@@ -53,7 +53,7 @@ namespace sgemm {
 // CLI 选项（参数表冻结于 AR001，详设 §3）
 // ---------------------------------------------------------------------
 struct CliOptions {
-    std::string kernel = "naive";   // naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|cublas|all
+    std::string kernel = "naive";   // naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|swpipe|swsk|ws|auto|cublas|all
     int m = 4096;
     int n = 4096;
     int k = 4096;
@@ -62,8 +62,13 @@ struct CliOptions {
     bool check = false;             // 正确性检查（对照 cuBLAS FP32）
     bool csv = false;               // 结果追加写入 results/performance.csv
     bool verbose = false;           // 打印回退路径等细节
-    int bk = 16;                    // smem1d 的 BK 消融旋钮（8/16/32）
-    int lb = 1;                     // tile2d 的 __launch_bounds__ minBlocks 消融旋钮（1/2）
+    int bk = 32;                    // smem1d 的 BK 消融旋钮（8/16/32；默认 32，AR007 实测固化）
+    int lb = 1;                     // tile2d 的 __launch_bounds__ minBlocks 消融旋钮（1/2；
+                                    //  swpipe/swsk 已固化 128-reg 包络，AR008 收窄语义）
+    int sk = 4;                     // swsk 的 split-K 片数消融旋钮（1..16；默认 4，AR008 详设 §4.6）
+    int stages = 3;                 // ws 的 smem 环深度消融旋钮（2/3；默认 3，AR008 详设 §4.6）
+    int wp = 2;                     // ws 的 producer warp 数消融旋钮（1/2；默认 2，AR008 详设 §4.6）
+    int rounds = 1;                 // 多轮统计轮数（AR007；1=单轮，与历史语义一致）
     bool list_kernels = false;
     bool help = false;
 };
@@ -71,14 +76,19 @@ struct CliOptions {
 inline void print_usage(const char* prog) {
     std::printf(
         "Usage: %s --kernel <name> [options]\n"
-        "  --kernel   naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|cublas|all\n"
+        "  --kernel   naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|swpipe|swsk|ws|auto|cublas|all\n"
         "  --m/--n/--k          problem size (default 4096)\n"
         "  --warmup <n>         warmup iterations (default 20, spec: >=20)\n"
         "  --iters  <n>         timed iterations (default 100, spec: >=100)\n"
+        "  --rounds <n>         independent timing rounds (default 1); n>1 aggregates\n"
+        "                       per-round medians and reports cross-round RSD\n"
         "  --check              run correctness check vs cuBLAS FP32 before benchmark\n"
         "  --csv                append result row to results/performance.csv\n"
-        "  --bk <8|16|32>       BK ablation knob for smem1d (default 16)\n"
-        "  --lb <1|2>           __launch_bounds__ minBlocks ablation knob for tile2d (default 1)\n"
+        "  --bk <8|16|32>       BK ablation knob for smem1d (default 32)\n"
+        "  --lb <1|2>           __launch_bounds__ minBlocks ablation for tile2d/ws (default 1)\n"
+        "  --sk <1..16>         split-K slices for swsk (default 4; 1 = bypass to swpipe)\n"
+        "  --stages <2|3>       smem ring depth for ws (default 3)\n"
+        "  --wp <1|2>           producer warp count for ws (default 2; 2+8=320 threads)\n"
         "  --verbose            print dispatch/fallback details\n"
         "  --list-kernels       list registered kernels\n"
         "  --help               this message\n",
@@ -102,8 +112,12 @@ inline CliOptions parse_cli(int argc, char** argv) {
         else if (a == "--k")            opt.k = std::atoi(next(a.c_str()));
         else if (a == "--warmup")       opt.warmup = std::atoi(next(a.c_str()));
         else if (a == "--iters")        opt.iters = std::atoi(next(a.c_str()));
+        else if (a == "--rounds")       opt.rounds = std::atoi(next(a.c_str()));
         else if (a == "--bk")           opt.bk = std::atoi(next(a.c_str()));
         else if (a == "--lb")           opt.lb = std::atoi(next(a.c_str()));
+        else if (a == "--sk")           opt.sk = std::atoi(next(a.c_str()));
+        else if (a == "--stages")       opt.stages = std::atoi(next(a.c_str()));
+        else if (a == "--wp")           opt.wp = std::atoi(next(a.c_str()));
         else if (a == "--check")        opt.check = true;
         else if (a == "--csv")          opt.csv = true;
         else if (a == "--verbose")      opt.verbose = true;
@@ -121,6 +135,22 @@ inline CliOptions parse_cli(int argc, char** argv) {
     }
     if (opt.warmup < 0 || opt.iters < 1) {
         std::fprintf(stderr, "[CLI_ERROR] invalid warmup/iters\n");
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.rounds < 1) {
+        std::fprintf(stderr, "[CLI_ERROR] --rounds must be >= 1 (got %d)\n", opt.rounds);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.sk < 1 || opt.sk > 16) {
+        std::fprintf(stderr, "[CLI_ERROR] --sk must be in 1..16 (got %d)\n", opt.sk);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.stages != 2 && opt.stages != 3) {
+        std::fprintf(stderr, "[CLI_ERROR] --stages must be 2 or 3 (got %d)\n", opt.stages);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.wp != 1 && opt.wp != 2) {
+        std::fprintf(stderr, "[CLI_ERROR] --wp must be 1 or 2 (got %d)\n", opt.wp);
         std::exit(EXIT_FAILURE);
     }
     return opt;
@@ -245,6 +275,91 @@ TimingStats time_kernel(Launch launch, int warmup, int iters) {
 
 inline double gflops_of(int m, int n, int k, double ms) {
     return 2.0 * (double)m * (double)n * (double)k / (ms * 1e6);
+}
+
+// ---------------------------------------------------------------------
+// 多轮统计聚合层（AR007 详设 §4.3 补注）：time_kernel 单轮语义保持不变；
+// rounds>1 时逐轮独立计时（每轮 warmup+iters），聚合取轮间 median，
+// 跨轮 RSD 超门（5%）自动追加轮次（≤3 次重试）。
+// ---------------------------------------------------------------------
+struct MultiRoundStats {
+    int rounds = 0;                    // 实际执行轮数（含自动重试）
+    std::vector<double> round_ms;      // 逐轮 median
+    double agg_ms = 0.0;               // 轮间 median（最终报告值）
+    double cross_rsd = 0.0;            // 跨轮 RSD（百分数）
+    double max_within_rsd = 0.0;       // 最大轮内 RSD
+    TimingStats best_round;            // agg 对应轮的完整 min/max/median
+};
+
+// Launch: 无参可调用对象（同 time_kernel）
+template <class Launch>
+MultiRoundStats time_kernel_rounds(Launch launch, int warmup, int iters,
+                                   int rounds, double rsd_gate_pct = 5.0,
+                                   int max_retries = 3) {
+    MultiRoundStats mr;
+    std::vector<TimingStats> all_rounds;   // 逐轮完整统计（best_round 提取用）
+    int retries = 0;
+    auto cross_rsd_of = [](const std::vector<double>& v) {
+        if (v.size() < 2) return 0.0;
+        double sum = 0.0;
+        for (double t : v) sum += t;
+        const double mean = sum / v.size();
+        double var = 0.0;
+        for (double t : v) var += (t - mean) * (t - mean);
+        var /= v.size();
+        return (mean > 0.0) ? 100.0 * std::sqrt(var) / mean : 0.0;
+    };
+
+    for (;;) {
+        TimingStats st = time_kernel(launch, warmup, iters);
+        mr.round_ms.push_back(st.ms_median);
+        all_rounds.push_back(st);
+        mr.max_within_rsd = (st.rsd > mr.max_within_rsd) ? st.rsd : mr.max_within_rsd;
+        // 轮数达标后按门控决定是否追加（每追加一次消耗一次重试额度）
+        const bool planned_done = (int)mr.round_ms.size() >= rounds;
+        if (planned_done) {
+            mr.cross_rsd = cross_rsd_of(mr.round_ms);
+            if (mr.cross_rsd > rsd_gate_pct && retries < max_retries) {
+                ++retries;
+                continue;   // 追加一轮（同 warmup+iters）
+            }
+            break;
+        }
+    }
+    mr.rounds = (int)mr.round_ms.size();
+
+    // 轮间 median（最终报告值）
+    std::vector<double> sorted = mr.round_ms;
+    std::sort(sorted.begin(), sorted.end());
+    const int n = mr.rounds;
+    mr.agg_ms = (n % 2 == 1) ? sorted[n / 2]
+                             : 0.5 * (sorted[n / 2 - 1] + sorted[n / 2]);
+
+    // best_round：median 最接近 agg_ms 的一轮的完整统计（CSV min/max 来源）
+    int best = 0;
+    double best_diff = -1.0;
+    for (int i = 0; i < n; ++i) {
+        const double diff = std::fabs(mr.round_ms[i] - mr.agg_ms);
+        if (best_diff < 0.0 || diff < best_diff) {
+            best_diff = diff;
+            best = i;
+        }
+    }
+    mr.best_round = all_rounds[best];
+    return mr;
+}
+
+// MultiRoundStats → TimingStats（CSV schema 冻结：rounds>1 时 rsd_pct = 跨轮
+// RSD，min/max 取 best_round；rounds=1 与单轮完全一致）
+inline TimingStats merge_round_stats(const MultiRoundStats& mr) {
+    TimingStats st;
+    st.ms_median = (mr.rounds > 1) ? mr.agg_ms : mr.best_round.ms_median;
+    st.ms_min = mr.best_round.ms_min;
+    st.ms_max = mr.best_round.ms_max;
+    st.ms_mean = mr.best_round.ms_mean;
+    st.rsd = (mr.rounds > 1) ? mr.cross_rsd : mr.best_round.rsd;
+    st.iters = mr.best_round.iters;
+    return st;
 }
 
 // 理论最小 DRAM 流量（字节）：各矩阵只读/写一次（ncu 对比基线，E4 实验）

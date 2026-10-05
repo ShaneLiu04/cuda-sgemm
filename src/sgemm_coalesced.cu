@@ -7,7 +7,9 @@
 //   * A 的访问退化为同地址广播（warp 内 32 线程读同一 A[row][kk]）
 // 仍然【无分块、无复用】：A/B 被重复读取 O(N)/O(M) 次，保持 memory-bound，
 // 为 AR003 提供"重复读取流量 ≈ 理论最小值数十倍"的证据（E4 实验）。
-// smem 用量：0。预期性能：~740.44 GFLOPS（6.52x vs naive）。
+// smem 用量：0。本机实测（4096^3, RTX 5000, 2026-10-04）：792.4 GFLOPS
+//   = naive 的 5.05x（合并事务的收益，与带宽上限无关——roofline 证据见图
+//   results/figures/fig3_roofline.png：naive/coalesced 同 AI，均远离带宽顶）。
 // =====================================================================
 #include "sgemm_kernels.h"
 #include <cstdio>

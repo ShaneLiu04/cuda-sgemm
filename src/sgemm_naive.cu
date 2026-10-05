@@ -8,7 +8,9 @@
 //         每次访存拆成 32 个独立事务 → DRAM 流量爆炸；
 //       - 预期 ncu 证据：sectors/request >> 4、long scoreboard stall 主导。
 //   * 无 shared memory、无复用、K 维串行累加。
-// 预期性能（4096^3, RTX 4060 Laptop）：~113.55 GFLOPS（±10% 条款见详设 §7）。
+// 本机实测（4096^3, Quadro RTX 5000, sm_75, 2026-10-04）：155.22 GFLOPS
+//   （= 理论 FP32 峰值 11.15 TF 的 1.4%；计时证据与推导见
+//    results/bottleneck_analysis.md Kernel 0 节）。
 // =====================================================================
 #include "sgemm_kernels.h"
 #include <cstdio>
