@@ -1,0 +1,5 @@
+# cuda-sgemm performance log | git=84e261f
+kernel,m,n,k,ms_median,ms_min,ms_max,ms_mean,rsd_pct,gflops,regs_smem_note,gpu_state(sm_mhz,temp_c,power_w),git_sha,timestamp
+swpipe,4096,4096,4096,20.8722,18.1473,21.4736,20.0451,0.347481,6584.78,see build.log,"1890 MHz, 68, 202.37 W",84e261f,2026-10-05 10:07:25
+vec4,4096,4096,4096,21.1241,18.3562,21.6842,20.2442,0.244026,6506.26,see build.log,"1890 MHz, 73, 226.94 W",84e261f,2026-10-05 10:07:33
+cublas,4096,4096,4096,13.5592,13.2272,19.0942,14.7547,0.0180306,10136.2,see build.log,"1845 MHz, 72, 183.82 W",84e261f,2026-10-05 10:07:40

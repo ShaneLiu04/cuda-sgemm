@@ -40,6 +40,28 @@
 
 ---
 
+## Kernel 6 — swpipe 软件流水（AR007，2026-10-05 实测）：瓶颈闭环 + 负结果翻正
+
+- **上游瓶颈（继承 K5 消融结论）**：vec4（K4）主循环中全局 LDG 与 LDS→FMA 同拍串行，
+  全局延迟（~400-800 cycle 量级）未被计算覆盖；K5 cp.async 双缓冲本应对症，
+  但 sm_75 无硬件指令退化为同步拷贝（-12%/-2%，负结果）。K5 方案乙消融证明
+  **"A 转置 + 寄存器预取"本身几乎无害（-1.8%）**——该结论即 K6 设计依据。
+- **对策（K6）**：单缓冲软件流水——每 tile 的 1×A-float4 + 1×B-float4 提前一轮
+  LDG 入寄存器，store→smem 与 compute 交替，双 `__syncthreads` 隔离写读；
+  布局/搬运划分与 vec4 完全一致（bank 冲突结论继承）。
+- **证据**：
+  - 正确性：83/83（主场景 rel=0，与 vec4 同累加顺序）；racecheck 0 hazards（单缓冲写读隔离验证）；
+  - 资源：128/127 regs（lb 消融两实例）0 spill，8.1KB smem，同 vec4 的 2 block/SM；
+  - 性能：6/6 尺寸全胜 vec4（256³ +4.2%、512³ +5.6%、4096³ 冷态 +1.2%）；
+    4096³ 冷态 6584.8 GF = cuBLAS（10136.2）的 64.9%。
+- **新瓶颈（下一版输入）**：swpipe 后达计算顶 ~55%（6585/11980），单级 LDG 预取已做满；
+  剩余差距归因 SASS 级调度/更深 K 向 ILP/warp 专用装卸（报告 §7 表），
+  在严格 FP32 + ptxas 工具链边界内不可再收敛——**本机自研 FP32 天花板已逼近**。
+- **缺失项**：ncu 计数器（smsp stall 构成、inst_executed 比例）——同 K0 受阻于
+  ERR_NVGPUCTRPERM，解锁步骤见下节。
+
+---
+
 ## 待办：ncu 计数器解锁步骤（获得管理员权限后）
 
 1. 管理员执行：
@@ -48,3 +70,43 @@
 2. 重启驱动（重启系统或禁用/启用显卡）；
 3. 重跑 `profile\profile_all.ps1 -Kernels naive`（其余 kernel 随各 AR 采集）；
 4. 本文档回补「缺失项」三指标 + 修订推导数值。
+
+
+---
+
+## AR008 闭环 #1：wave 饥饿 → swsk split-K（证实）
+
+- **瓶颈**：swpipe 128×128 tile 在中小尺寸 blocks < 48 SM——512³ 仅 16 blocks（33% 占用面）、
+  1024³ 64 blocks=1.33 波（尾波空转），SM 大量闲置。
+- **证据**：同会话配对 512³ swpipe 2370.3 vs swsk(sk4) **3542.5（+49.4%，3 轮极差 0.42pp）**；
+  256³ swpipe 560.4 vs swsk(sk12) 1379.7（+146%）；sk 扫描（fig9a）显示最优 sk 随 blocks 变化
+  （256³: 4→48 恰满单波；2048³: 256 blocks 饱和后 sk↑ 单调反噬）。
+- **对策**：split-K 沿 K 切片抬波数 + 确定性固定序归约（workspace + 独立 kernel，逐位可复现）。
+- **验证**：G4 全线 4/6 尺寸 delta ≥+2%（256/512/1024/1000×1016 全 HIT）；
+  auto dispatch（swsk 带：≤64 blocks）背靠背对内 delta ≤0.9% vs 实测最优。
+- **边界**：4096³ swsk -3.5%（P 写出反噬）→ auto 分界线 >64 blocks 回 swpipe，实测闭环。
+
+## AR008 闭环 #2：issue-slot 竞争 → ws warp 专属化（否定，负结果归档）
+
+- **假说**：大尺寸稳态循环 FFMA 发射槽占比 ~55%（AR007 推断）→ 剥离 LDG/STS 给专职
+  producer warp 可显著抬升消费者发射槽利用率。
+- **证据（消融矩阵 fig12 + 配对 fig13/14）**：ws 全 8 配置（PW{1,2}×STAGES{2,3}×LB{1,2}，
+  升降序 2-pass）在 1024³/2048³/4096³ 全部不敌 swpipe（-7.9%/-20.4%/-15.0%）；4096³ 配对
+  delta -16.00%（3 轮极差 0.33pp，结论稳健）；LB=2 双 block 驻留（62.5% 占用）3/4 尺寸劣于
+  31.3%；PW=1 单 producer warp 全面更差（搬运吞吐不足）。
+- **归因**：把搬运剥离出计算 warp 后，消费者 warp 内只剩 LDS→FFMA 依赖链，ILP 上限反而
+  降低；swpipe 的寄存器预取混合流在同一 warp 内同时提供"内存指令填充发射槽 + 覆盖 DRAM
+  延迟"两个收益——软件 warp specialization 在 sm_75（无 cp.async/mbarrier/专属化硬件）上
+  得不偿失。与 AR006 cp.async 负结果（-12%）构成同族证据："硬件缺席时软件复刻"边界。
+- **对策**：ws 保留为教学阶梯 Kernel 7（结构完整、racecheck 0 hazards、110/110），性能定位
+  如实标注"负结果"；auto dispatch 不选 ws（实测败于 swsk/swpipe 全尺寸）。
+- **验证**：G3 门（4096³ ws ≥7.0TF）FAIL——按数据真实性军规归档，fig13 即负结果证据图。
+
+## AR008 方法论闭环 #3：WDDM 热漂移 → thermal-paired 协议（证实）
+
+- **问题**：跨会话绝对值漂移（AR007→AR008 同 kernel -5%~-14%）掩蔽真实优化效果；
+  会话内 WDDM 动态时钟双峰（1620↔1935MHz）致 swpipe 单组 benchmark 双峰分布。
+- **对策**：交替配对（A,B）×3 轮 + 冷却门控，对内 delta 相消共模漂移。
+- **验证**：全 24 组 delta 轮间极差 median **0.53pp**（G5 PASS）；对照 AR007 跨会话漂移
+  ~5-14%。污染组（冷却超时 48C）按协议剔除重测，原始行备份
+  `paired_ar008_thermal_bak.csv`——协议诚实性自证。

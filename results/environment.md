@@ -99,3 +99,5 @@
 | 2026-10-04 | T006 正式 benchmark（4096³ naive+cublas 各 3 轮 ×100 iters） | 60–76°C / 66–225 W | SM 1845–1920 MHz（稳态） | naive RSD 0.47–0.60% ✓；cublas RSD 8.76–9.55% 超标，归因：功耗墙振荡（185–225 W≈230 W cap）+ WDDM 无锁频（策略 B 已知代价），median 跨轮一致（13.94/14.26/14.37 ms），取中位 14.26 ms 有效 |
 | 2026-10-04 | §8 sanitizer（memcheck 全套件 + racecheck cpasync×2） | — | — | memcheck 0 errors（8 kernel × 9 尺寸）；racecheck 0 hazards |
 | 2026-10-04 | E10 带宽标定 | D2D 拷贝稳态 | — | 375.7 GB/s（20 轮最优 5.715 ms/GiB） |
+| 2026-10-04 | 改靶后对比实验（E1 全 kernel×6 尺寸 + E2 消融，git=84e261f） | 43–82°C / 15–226 W | SM 375–1950 MHz（动态加速超标称 1815） | 53 行 CSV；WDDM 单点提交抖动致部分 RSD 虚高（median 鲁棒，min/max 保留）；小尺寸冷启动（390 MHz）由 warmup 拉起 |
+| 2026-10-05 | AR007 矩阵会话（9 kernel × 6 尺寸 × rounds=3 + 4 消融，10 分钟连续热浸没） | 57–85°C / 52–227 W | SM 1815–1950 MHz（尾段 1815–1860，热降频 ~5%） | 54 cells 全 RSD≤1.7%（--rounds 门控生效：跨轮 RSD 0.02–0.35%）；热浸没致绝对值系统性偏低（cuBLAS 4096³ 9780 vs 冷态 10136）；消融行分流 ablation_ar007.csv；冷态确认探针分流 cool_probe_ar007.csv（swpipe 6584.8 / vec4 6506.3 / cuBLAS 10136.2 GF，cuBLAS=本机历史最高=峰值 84.6%） |
