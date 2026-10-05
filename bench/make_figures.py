@@ -1017,6 +1017,41 @@ def fig_arch():
     fig.savefig(os.path.join(OUT_DIR, "fig8_arch.png"))
     plt.close(fig)
 
+def optimize_png(path):
+    """存储层压缩：白底合成 + 调色板量化 + optimize，迭代降至 SIZE_TARGET 以下。
+
+    图表像素内容由 matplotlib 渲染决定，本步骤只做存储层压缩（同一脚本、同一 CSV
+    输入 → 同一输出），保持"无手工修饰"纪律。从 256 色起逐档减半直至达标。
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        print("  [warn] Pillow 不可用，跳过 PNG 压缩:", path)
+        return
+    SIZE_TARGET = 72 * 1024  # 72 KB：图表归档体积目标
+    img = Image.open(path)
+    if img.mode in ("RGBA", "LA"):
+        bg = Image.new("RGB", img.size, (255, 255, 255))
+        bg.paste(img, mask=img.split()[-1])
+        img = bg
+    elif img.mode != "RGB":
+        img = img.convert("RGB")
+    colors = 256
+    while True:
+        img.quantize(colors=colors, method=Image.MEDIANCUT).save(path, optimize=True)
+        if os.path.getsize(path) <= SIZE_TARGET or colors <= 32:
+            break
+        colors //= 2
+    # 色数到下限仍未达标（如密集多面板图）：逐档轻微降采样（0.9x），直至达标
+    if os.path.getsize(path) > SIZE_TARGET:
+        scale = 0.9
+        while os.path.getsize(path) > SIZE_TARGET and scale >= 0.6:
+            w, h = img.size
+            small = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+            small.quantize(colors=colors, method=Image.MEDIANCUT).save(path, optimize=True)
+            scale *= 0.9
+
+
 fig_ladder()
 fig_scaling()
 fig_roofline()
@@ -1032,6 +1067,9 @@ fig_ws_ablation()
 fig_isslot_hypothesis()
 fig_paired_delta()
 fig_ladder_v2()
+for f in sorted(os.listdir(OUT_DIR)):
+    if f.endswith(".png"):
+        optimize_png(os.path.join(OUT_DIR, f))
 print("figures written to", OUT_DIR)
 for f in sorted(os.listdir(OUT_DIR)):
     print("  ", f)
