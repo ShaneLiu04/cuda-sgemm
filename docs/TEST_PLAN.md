@@ -14,7 +14,7 @@
 
 | 项 | 要求 | 检查命令 |
 |----|------|---------|
-| GPU | RTX 4060 Laptop（sm_89）；其他 Ada 卡需改 `-DCMAKE_CUDA_ARCHITECTURES` | `nvidia-smi` |
+| GPU | Quadro RTX 5000（sm_75, Turing, 48 SM，本工程调优目标机）；其他卡需改 `-DCMAKE_CUDA_ARCHITECTURES` | `nvidia-smi` |
 | 驱动 | ≥ CUDA Toolkit 对应版本要求 | `nvidia-smi --query-gpu=driver_version` |
 | CUDA Toolkit | ≥ 11.8（建议 12.x），含 nvcc | `nvcc --version` |
 | Nsight Compute | 与 Toolkit 配套 | `ncu --version` |

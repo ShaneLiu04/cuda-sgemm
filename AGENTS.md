@@ -5,8 +5,10 @@
 
 ## 1. 项目身份
 
-- **组件**：`cuda-sgemm` — RTX 4060 Laptop（sm_89）上严格 FP32 的 SGEMM 六版 kernel 逐层优化与性能分析工程。
-- **语言/标准**：CUDA C++，C++17；CUDA Toolkit ≥ 11.8（建议 12.x）。
+- **组件**：`cuda-sgemm` — Quadro RTX 5000（sm_75, Turing, 48 SM）上严格 FP32 的 SGEMM 七版 kernel（naive→swpipe）逐层优化与性能分析工程。
+  （原设计目标机 RTX 4060 Laptop（sm_89）已于 2026-10-04 改靶本机，偏差与决策记录见
+  `results/environment.md` §0 与 `specs/component-detail-design/cuda_sgemm_spec.md` §2。）
+- **语言/标准**：CUDA C++，C++17；CUDA Toolkit ≥ 11.8（实测 12.5.40）。
 - **数据真实性**是本工程第一军规（见 PROMPT.md §6），性能数字一律实测、可复现。
 
 ## 2. 目录约定
@@ -28,10 +30,18 @@ cuda-sgemm/
 
 | 命令 | 作用 |
 |------|------|
-| `make` / `make build` | 编译全部 kernel + tests + bench：`nvcc -O3 -std=c++17 -arch=sm_89 -lineinfo -Xptxas -v` |
+| `make` / `make build` | 编译全部 kernel + tests + bench：`nvcc -O3 -std=c++17 -arch=sm_75 -lineinfo -Xptxas -v` |
 | `make test` | 运行全部正确性测试，输出 PASS/FAIL 表格 |
 | `make bench [M= N= K= KERNEL=all]` | benchmark，追加写入 `results/performance.csv` |
 | `make profile` | ncu 批量采集（指标集见详设 §4.5），导出到 `profile/<kernel>/` |
+
+- **消融旋钮**（AR008 起冻结，默认值与依据见详设 §4.6）：`--bk`（smem1d，默认 32）、
+  `--lb`（tile2d/ws，默认 1；swpipe/swsk 固化 128-reg 封顶，AR008 实测收窄）、
+  `--sk`（swsk split-K 片数，默认 4，1..16）、
+  `--stages`（ws smem 环深度，默认 3，2/3）、
+  `--wp`（ws producer warp 数，默认 2，1/2）、
+  `--rounds N`（多轮门控统计，默认 1，0 → CLI_ERROR）。
+  非默认参数跑出的数据必须经 `SGEMM_CSV` 环境变量分流到独立 CSV，禁止污染主 `performance.csv`。
 
 - **禁止 `-use_fast_math`**；FMA 合并默认允许（IEEE 合规范围）。
 - `-Xptxas -v` 输出必须保留到构建日志（`build.log`），寄存器/smem 用量是验收数据。
@@ -70,6 +80,11 @@ cuda-sgemm/
 - 每版 kernel 的瓶颈结论必须构成闭环：**瓶颈 → 证据（指标数值）→ 对策 → 下一版验证结果**，
   追加到 `results/bottleneck_analysis.md`。
 - cp.async 版本必须抽查 `compute-sanitizer --tool racecheck`；所有版本发布前 `--tool memcheck` 干净。
+- **实验与图表纪律（每个 AR 强制）**：每个 AR 收尾前必须补充成组对比实验（消融/配对/回归，
+  数量以"足以支撑结论"为准，宁多勿少）增强说服力；实验结果必须沉淀为**可解释、信息丰富、
+  美观**的图表（`make_figures.py` 从 CSV 可复现生成，无手工修饰），并回填
+  `results/report.md` 与 README。每个开发任务在完成时就明确自己的实验数据与图表交付物
+  （见各 AR tasks.md 的交付物列），禁止"做完代码、图表最后凑数"。
 
 ## 7. TDD 规则（CUDA 特化）
 
