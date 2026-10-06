@@ -1,4 +1,4 @@
-# results/bottleneck_analysis.md — 逐版瓶颈闭环分析
+﻿# results/bottleneck_analysis.md — 逐版瓶颈闭环分析
 
 > 格式契约（TEST_PLAN §7）：瓶颈 → 证据 → 对策 → 下一版验证。
 > **⚠️ 本机 ncu 硬件计数器被 ERR_NVGPUCTRPERM 阻塞（WDDM + 无管理员权限，2026-10-04）**，
@@ -110,3 +110,32 @@
 - **验证**：全 24 组 delta 轮间极差 median **0.53pp**（G5 PASS）；对照 AR007 跨会话漂移
   ~5-14%。污染组（冷却超时 48C）按协议剔除重测，原始行备份
   `paired_ar008_thermal_bak.csv`——协议诚实性自证。
+
+## AR009 闭环 #4：占用率墙 → wide/wsk 512 线程宽块 → LDS.128 带宽墙确证（假说证伪，负结果归档）
+
+- **问题**（AR008 遗留）：swpipe 128 regs → 2 block/SM = 50% warp slots；三个 FAIL 门
+  （G1/G2/G3）初步归因占用率不足。假说：100% 占用可显著抬升吞吐。
+- **对策**：Kernel 8 wide（64×256×8 tile，TM4×TN8，512 线程双角色流水：搬运期 A/B loader
+  分工 256+256，计算期全 512 线程；单缓冲双同步）+ wsk（wide+split-K，detail::swsk_reduce
+  共享归约）。寄存器预算工程（基址预计算 + Out 指针延迟物化）达成 **LB=2 = 64 regs/0 spill，
+  2×512×64 = 65536 恰满 64K → 100% warp slots 占用判据达成**（build.log ptxas 审计）。
+- **验证（三重独立证据，全部否定占用率假说）**：
+  1. T002 smoke：wide LB=1(50%) vs LB=2(100%) 全尺寸同速（fig16c）；
+  2. T004 波消融（170 行，同会话双 kernel）：**半填充 sk3（48 blocks = 1/SM）反超满填充
+     sk6（96 = 2/SM）**——wsk 2917 vs 2479（+18%）、swsk 4273 vs 3413（+25%）@512³（fig17）；
+     split 开销（P 写出+归约+浅切片）> 额外 warp 并行收益；
+  3. T005 LB 消融（42 行）：LB 效应 ±0~4% 且符号随配置翻转——wsk sk3 LB1 +4.1%@512³、
+     sk12 LB2 +3.5%、**2048³ wide 50% 占用反而 +2.2% 更快**（fig18）。
+- **结论**：sm_75 FP32 的真墙 = **LDS.128 带宽**（wide 4 LDS/64 FFMA = 1:16 vs swpipe
+  平衡点 3:32；wide/wsk best-vs-best 全尺寸 0.57-0.75× 于 swsk 最优——fig17f/21）。
+  swpipe 已处 LDS/FFMA Pareto 平衡点。wide/wsk 保留为教学阶梯 Kernel 8（128/128 正确、
+  memcheck/racecheck 0、与 swpipe/swsk 数值逐位同源），性能定位如实标注负结果。
+- **意外正收益**：①swsk sk3/sk6 调优点（512³ +21.5%/1024³ +13.3%/256³ sk6 最优）→ auto v2
+  dispatch 回填（G4'/G5' PASS）；②**稳态测量纪律**：1620 MHz 持续态为无 -lgc 权限时的
+  诚实基准（swsk_sk3@1024³ 连续 8 探针 8/8 = 5405.03 GFLOPS 丝毫不差；boost 1875-1950 行
+  为瞬态彩票）；③4096³ 批间双峰披露（同 declared 时钟 6.5T vs 7.3T，核内有效时钟不可经
+  行间查询观测）；④G3 首过（swpipe@4096³ 3 轮中位 7185.3 = 7.0T 门 102.6%）。
+- **证据链**：fig16（结构+资源包络+LSU 墙预测）、fig17（pre-wave 扫描+波几何注记）、
+  fig18（LB 消融三探针裁决）、fig19c（稳态纪律）、fig20（三门 v3 判定）、fig21（全 kernel
+  阶梯）；CSV：ablation_ar009/ablation_wlb_ar009/auto_ar009(+dispatchA)/boost_lottery/
+  paired_ar009/smoke_wide/smoke_wsk；判定文书 compare_ar009_paired.md。

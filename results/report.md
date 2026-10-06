@@ -1,4 +1,4 @@
-# cuda-sgemm 技术报告
+﻿# cuda-sgemm 技术报告
 
 ## 六版 SGEMM 逐层优化 + swpipe 软件流水扩展在 Quadro RTX 5000 上的实测与可解释性分析
 > **数据真实性声明**：本报告所有性能数字均为 CUDA events 实测（warmup 20 + 正式 100 次，取 median），
@@ -435,3 +435,69 @@ sk 另受 K 钳制（sk ≤ ceil(K/8)，短 K 防空片）。验证：fig10(b) 6
 `results/size256_ar008.csv`、`results/auto_ar008.csv`、`results/compare_ar008_paired.md`（四门
 判定表）、`build.log`（ptxas 资源审计：ws 8 实例 + swsk 归约 kernel）、
 `results/paired_ar008_thermal_bak.csv`（污染组原始行备份，协议诚实性）。
+
+---
+
+## 11. AR009：占用率墙攻坚（Kernel 8 wide/wsk 512 线程宽块 + auto v2 + 稳态测量纪律）
+
+**动机**：AR008 三 FAIL 门（G1/G2/G3）初步归因 swpipe 50% warp slots 占用率墙。假说：
+512 线程宽块（64×256 tile，TM4×TN8）+ 寄存器预算工程达成 100% 占用 → 吞吐抬升。
+
+**交付**：
+
+| 交付 | 内容 | 证据 |
+|------|------|------|
+| wide（Kernel 8） | 512 线程双角色流水（搬运期 256 A-loader + 256 B-loader 恰 1 float4/线程；计算期全 512 线程 32×16）；单缓冲双同步；**LB=2 = 64 regs/0 spill，2×512×64=65536 恰满 64K → 100% warp slots 占用达成**（基址预计算+Out 指针延迟物化，首轮 8B spill 修复）；`--wlb {1,2}` | 128/128；memcheck/racecheck 0；与 swpipe 逐位同源（bitwise 工具）；build.log ptxas 审计 |
+| wsk（K8 变体） | wide + split-K（`--sk`，workspace 自备 RAII，detail::swsk_reduce 与 swsk 数值同源） | 1024³sk4/256³sk12 双方 max_abs 逐位一致；确定性双跑全位一致 |
+| auto v2 | dispatch 重标定：≤4→swsk6 / ≤64→swsk3 / >64→swpipe（1620 MHz **稳态**实测回填） | G4' PASS（4/6 尺寸 ≥+2%：512³ **+21.5%** / 1024³ +13.3% / 1000×1016 +13.3% / 256³ +2.2%）；dispatch 保真 ≤0.33pp |
+| 稳态测量纪律 | 1620 MHz 持续态 = 无 -lgc 权限的诚实基准；boost 行（1875-1950）为瞬态彩票仅作归一旁证；4096³ 批间双峰如实披露 | boost_lottery_ar009.csv：swsk_sk3@1024³ **8/8 探针 = 5405.03 GFLOPS 丝毫不差** |
+
+**五门 v3 判定（srs AR009 §4，3 PASS / 2 FAIL，compare_ar009_paired.md）**：
+
+| 门 | 判定 | 数据 |
+|----|------|------|
+| G1@512³ ≥75% cuBLAS | **PASS（刀锋）** | auto v2 4275.5 / cuBLAS 5698.8 = **75.03%**（swsk sk3 调点 +21.5% 所得） |
+| G1@1024³ | **FAIL** | 64.20%（5377/8377；缺口 906 GF 架构性：cuBLAS 84% peak vs 我方 54.5%） |
+| G2 256³ ≥1618.2 且超 cuBLAS | **FAIL（95.4%）** | swsk_sk6 1544.3 = 门值 95.4%；超同会话 cuBLAS **1.240×** 达成 |
+| G3 4096³ ≥7.0TF | **PASS（102.6%）** | swpipe 3 轮中位 **7185.3**（n=12，7085-7438；批 A 双峰 6488-6591 如实披露）——AR008 FAIL 6474 → 首过 |
+| G4' auto v2 ≥4/6 +2% | **PASS** | 见交付表 |
+| G5' dispatch 保真 <2pp | **PASS** | 最大 0.33pp |
+
+### 11.1 占用率假说证伪与 LDS 带宽墙（负结果，三重独立证据）
+
+1. **T002**：wide LB=1(50%) vs LB=2(100%) 全尺寸同速（fig16c）——占用率翻倍零收益；
+2. **T004**（170 行同会话双 kernel 波消融）：**半填充 sk3（48 blocks=1/SM）反超满填充 sk6
+   （96=2/SM）**——wsk +18%、swsk +25% @512³（fig17）；split 开销 > warp 并行收益；
+3. **T005**（42 行 LB 消融）：LB 效应 ±0-4% 且符号随配置翻转；**2048³ 50% 占用反而 +2.2%**（fig18）。
+
+**结论**：sm_75 FP32 真墙 = **LDS.128 带宽**（wide 4LDS/64FFMA=1:16 vs swpipe 平衡点 3:32）；
+wide/wsk best-vs-best 全尺寸 0.57-0.75× 于 swsk 最优（fig17f/fig21）。swpipe 已处 LDS/FFMA
+Pareto 平衡点。wide/wsk 保留为教学阶梯（数值同源、sanitizer 全清），性能定位如实标注负结果。
+与 AR006（cp.async -12%）、AR008（ws issue-slot 否定）构成"硬件边界三联负结果"。
+
+### 11.2 auto dispatch 表 v2（稳态实测回填）
+
+| blocks=ceil(M/128)·ceil(N/128) | v1（AR008） | v2（AR009） | 依据（1620 MHz 稳态） |
+|---|---|---|---|
+| ≤4（256³ 类） | swsk sk=12 | **swsk sk=6** | sk6 1545 > sk12 1508（+2.5%；24 blocks 半填充+切片深度折衷） |
+| ≤64（512³/1024³/1000×1016） | swsk sk=4 | **swsk sk=3** | 512³ +20.8%；1024³ sk3 5381 > sk4 4767 > swpipe 4629（8/8 探针稳态） |
+| >64（2048³/4096³） | swpipe | swpipe | 2048³ swpipe 7145 ≈ sk3 7065 并列取简 |
+
+---
+
+## 附录 C：AR009 图表索引（结论 → 图 → 数据，三链可溯）
+
+| 结论 | 图表 | 数据源 |
+|------|------|--------|
+| wide 双角色流水结构 + 100% 占用达成 + LSU 墙早期信号 | fig16_wide_structure (a)(b)(c) | smoke_wide_ar009.csv + build.log ptxas |
+| pre-wave 扫描：半填充>满填充、精确波 sk3 峰值、wsk 全尺寸落败 | fig17_prewave_sweep (a)-(f) | ablation_ar009.csv（170 行） |
+| LB 消融三探针：占用率假说正式否定 | fig18_wide_lb (a)(b)(c) | ablation_wlb_ar009.csv（42 行） |
+| auto v2 重标定 + G4' PASS + 稳态纪律证据 | fig19_dispatch_v2 (a)(b)(c) | auto_ar009.csv + boost_lottery_ar009.csv + dispatchA |
+| 五门 v3 判定（G1/G2/G3 绝对门 + G5' 保真） | fig20_paired_delta_v3 (a)(b)(c) | paired_ar009.csv（168 行） |
+| 全 kernel 阶梯 v3（wide/wsk 入榜定位） | fig21_ladder_v3 | paired_ar009.csv |
+
+原始数据：`results/ablation_ar009.csv`、`results/ablation_wlb_ar009.csv`、
+`results/auto_ar009.csv`（+`auto_ar009_dispatchA.csv` 误判轮负结果归档）、
+`results/boost_lottery_ar009.csv`、`results/paired_ar009.csv`、
+`results/smoke_wide_ar009.csv`、`results/smoke_wsk_ar009.csv`、
+`results/compare_ar009_paired.md`（五门判定表）。
