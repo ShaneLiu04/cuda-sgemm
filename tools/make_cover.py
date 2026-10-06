@@ -66,41 +66,58 @@ def draw_tracked(draw, pos, text, fnt, fill, tracking=6):
 
 
 def ladder_heights():
-    """K0-K6 实测 GFLOPS（4096^3, median）→ 归一化柱高（log 标度）。"""
+    """K0-K9 实测 GFLOPS（4096^3, median）→ 归一化柱高（log 标度）。
+
+    十一根柱：K0-K6 正向演进 + swsk(K6')/ws(K7)/wide(K8) 含负结果柱 +
+    deep(K9) 峰值——负结果同样上封面，与本工程"失败实验归档"军规一致。
+    """
     import math
-    perf = [157.0, 792.4, 2874.7, 4683.6, 6391.3, 5647.1, 6584.8]
+    perf = [157.0, 792.4, 2874.7, 4683.6, 6391.3, 5647.1,
+            6584.8, 6250.4, 5377.7, 4408.8, 8560.3]
     lo, hi = math.log(120), math.log(12000)
     return perf, [0.16 + 0.84 * (math.log(p) - lo) / (hi - lo) for p in perf]
 
 
 def draw_ladder(img):
-    """右侧性能阶梯主视觉：7 根渐变柱 + cuBLAS 参考线。"""
+    """右侧性能阶梯主视觉：11 根渐变柱 + cuBLAS 参考线。"""
     draw = ImageDraw.Draw(img, "RGBA")
-    x0, y0, bw, gap = 950, 620, 64, 22
+    x0, y0, bw, gap = 900, 620, 46, 13
     perf, hs = ladder_heights()
+    labels = ["K0", "K1", "K2", "K3", "K4", "K5",
+              "K6", "K6'", "K7", "K8", "K9"]
+    neg = {5, 8, 9}   # cpasync / ws / wide —— 负结果柱降饱和
     max_h = 430
     for i, (p, h) in enumerate(zip(perf, hs)):
         bh = int(max_h * h)
         x = x0 + i * (bw + gap)
         y_top = y0 - bh
-        c_top = lerp((38, 70, 44), GREEN, i / 6)
-        c_bot = lerp((14, 30, 22), (46, 92, 20), i / 6)
+        t = i / 10
+        if i in neg:
+            c_top = lerp((30, 40, 48), (74, 92, 60), t)
+            c_bot = lerp((12, 18, 24), (30, 40, 26), t)
+        else:
+            c_top = lerp((38, 70, 44), GREEN, t)
+            c_bot = lerp((14, 30, 22), (46, 92, 20), t)
         for yy in range(bh):
             draw.line([(x, y_top + yy), (x + bw, y_top + yy)],
                       fill=lerp(c_top, c_bot, yy / max(1, bh - 1)))
         draw.rectangle([x, y_top - 3, x + bw, y_top], fill=WHITE)
-        lbl = font("consola.ttf", 20)
-        draw.text((x + bw // 2, y_top - 36), f"K{i}", font=lbl,
+        lbl = font("consola.ttf", 18)
+        draw.text((x + bw // 2, y_top - 32), labels[i], font=lbl,
                   fill=GRAY, anchor="ma")
-        val = font("consola.ttf", 17)
-        draw.text((x + bw // 2, y0 + 14), f"{p:,.0f}", font=val,
+        val = font("consola.ttf", 14)
+        draw.text((x + bw // 2, y0 + 12), f"{p:,.0f}", font=val,
                   fill=DIM, anchor="ma")
-    draw.text((x0 + 3 * (bw + gap) + bw // 2, y0 + 44), "kernel 版本（4096³ 实测 GFLOPS，log 标度）",
+    draw.text((x0 + 5 * (bw + gap) + bw // 2, y0 + 40),
+              "kernel 版本（4096³ 实测 GFLOPS，log 标度；暗色柱 = 负结果归档）",
               font=font("msyh.ttc", 17, 1), fill=DIM, anchor="ma")
-    cub_y = y0 - int(max_h * (0.16 + 0.84 * 0.845))
-    for xx in range(x0 - 30, x0 + 7 * (bw + gap), 18):
+    import math as _m
+    lo, hi = _m.log(120), _m.log(12000)
+    cub_t = 0.16 + 0.84 * (_m.log(10136.2) - lo) / (hi - lo)
+    cub_y = y0 - int(max_h * cub_t)
+    for xx in range(x0 - 30, x0 + 11 * (bw + gap), 18):
         draw.line([(xx, cub_y), (xx + 9, cub_y)], fill=(220, 190, 90, 200))
-    draw.text((x0 + 7 * (bw + gap) - 26, cub_y - 28), "cuBLAS",
+    draw.text((x0 + 11 * (bw + gap) - 26, cub_y - 26), "cuBLAS",
               font=font("consola.ttf", 17), fill=(220, 190, 90), anchor="ra")
 
 
@@ -109,16 +126,16 @@ def draw_text_block(img):
     draw_tracked(draw, (96, 96), "CUDA  PERFORMANCE  ENGINEERING",
                  font("consola.ttf", 22), GREEN, tracking=4)
     draw.text((92, 140), "cuda-sgemm", font=font("segoeuib.ttf", 112), fill=WHITE)
-    draw.text((96, 288), "七版 SGEMM 优化阶梯 — 逐层实测与可解释性分析",
+    draw.text((96, 288), "十六版 SGEMM 逐层实测 — 负结果同样归档",
               font=font("msyhbd.ttc", 36, 1), fill=(220, 228, 238))
     draw.text((96, 344), "从教科书 kernel 到逼近 cuBLAS：每一步优化都被实测证据钉住",
               font=font("msyh.ttc", 22, 1), fill=GRAY)
     draw.rectangle([96, 410, 320, 414], fill=GREEN)
     stats = [
-        ("42.2×", "naive → swpipe 提升比"),
-        ("6,585", "GFLOPS @ 4096³（冷态）"),
-        ("117%", "vs cuBLAS @ 256³"),
-        ("110/110", "正确性回归全通过"),
+        ("54.6×", "naive → deep 提升比"),
+        ("8,568", "GFLOPS @ 2048³（同会话）"),
+        ("124.6%", "vs cuBLAS @ 256³"),
+        ("146/146", "正确性 + 21/21 逐位"),
     ]
     x = 96
     for value, label in stats:

@@ -30,6 +30,8 @@
 
 namespace sgemm {
 int g_swsk_slices = 4;  // --sk 片数（默认 4；1..16，CLI 校验）
+int g_reduce_ilp2 = 0;  // --rv2（AR010）：0 = v1（1 f4/线程），1 = v2（2 f4/线程，
+                        // 逐位等价——仅线程-元素映射改变，逐元素 z 升序链不变）
 }
 
 namespace {
@@ -72,20 +74,188 @@ __global__ void swsk_reduce_kernel(const float* __restrict__ P,
     }
 }
 
-void launch_reduce(const float* P, float* C, long long mn, int sk) {
+// ---- 归约 v2（AR010 --rv2）：每线程 2 个相邻 float4，2x 独立 load 链 ----
+// 逐位等价证明：逐元素的加法链仍为 s=0..sk-1 升序串行（v1 相同），
+// 仅线程-元素映射改变（idx2 处理 {2*idx2, 2*idx2+1}）；mn4 奇数时尾线程
+// 只写 i0（i1 越界护卫）。
+__global__ void swsk_reduce_v2_kernel(const float* __restrict__ P,
+                                      float* __restrict__ C,
+                                      long long mn4, int sk) {
+    const long long idx2 = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    const long long i0 = idx2 * 2;
+    if (i0 < mn4) {
+        const bool has1 = (i0 + 1) < mn4;
+        const float4* p4 = reinterpret_cast<const float4*>(P);
+        float4 acc0 = make_float4(0.f, 0.f, 0.f, 0.f);
+        float4 acc1 = make_float4(0.f, 0.f, 0.f, 0.f);
+        for (int s = 0; s < sk; ++s) {
+            const float4 v0 = p4[s * mn4 + i0];
+            acc0.x += v0.x; acc0.y += v0.y; acc0.z += v0.z; acc0.w += v0.w;
+            if (has1) {
+                const float4 v1 = p4[s * mn4 + i0 + 1];
+                acc1.x += v1.x; acc1.y += v1.y; acc1.z += v1.z; acc1.w += v1.w;
+            }
+        }
+        reinterpret_cast<float4*>(C)[i0] = acc0;
+        if (has1) reinterpret_cast<float4*>(C)[i0 + 1] = acc1;
+    }
+}
+
+// ---- 归约 v3（AR010 T007 G1@1024³ 攻坚 --rv2=3）：每线程 4 个相邻 float4
+// （ILP4，4x 独立 load 链）+ __ldcs/__stcs 流式提示（P 不复用、C 不再读，
+// evict-first 减少 L2 污染）。逐位等价证明：每元素的加法链仍为 s=0..sk-1
+// 升序串行（与 v1 完全相同），仅线程-元素映射改变（idx4 处理
+// {4*idx4 .. 4*idx4+3}）；mn4 非整除时逐槽谓词护卫。
+__global__ void swsk_reduce_v3_kernel(const float* __restrict__ P,
+                                      float* __restrict__ C,
+                                      long long mn4, int sk) {
+    const long long idx4 = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    const long long i0 = idx4 * 4;
+    if (i0 < mn4) {
+        const bool has1 = (i0 + 1) < mn4;
+        const bool has2 = (i0 + 2) < mn4;
+        const bool has3 = (i0 + 3) < mn4;
+        const float4* p4 = reinterpret_cast<const float4*>(P);
+        float4 acc0 = make_float4(0.f, 0.f, 0.f, 0.f);
+        float4 acc1 = make_float4(0.f, 0.f, 0.f, 0.f);
+        float4 acc2 = make_float4(0.f, 0.f, 0.f, 0.f);
+        float4 acc3 = make_float4(0.f, 0.f, 0.f, 0.f);
+        for (int s = 0; s < sk; ++s) {
+            const float4 v0 = __ldcs(&p4[s * mn4 + i0]);
+            acc0.x += v0.x; acc0.y += v0.y; acc0.z += v0.z; acc0.w += v0.w;
+            if (has1) {
+                const float4 v1 = __ldcs(&p4[s * mn4 + i0 + 1]);
+                acc1.x += v1.x; acc1.y += v1.y; acc1.z += v1.z; acc1.w += v1.w;
+            }
+            if (has2) {
+                const float4 v2 = __ldcs(&p4[s * mn4 + i0 + 2]);
+                acc2.x += v2.x; acc2.y += v2.y; acc2.z += v2.z; acc2.w += v2.w;
+            }
+            if (has3) {
+                const float4 v3 = __ldcs(&p4[s * mn4 + i0 + 3]);
+                acc3.x += v3.x; acc3.y += v3.y; acc3.z += v3.z; acc3.w += v3.w;
+            }
+        }
+        float4* c4 = reinterpret_cast<float4*>(C);
+        __stcs(&c4[i0], acc0);
+        if (has1) __stcs(&c4[i0 + 1], acc1);
+        if (has2) __stcs(&c4[i0 + 2], acc2);
+        if (has3) __stcs(&c4[i0 + 3], acc3);
+    }
+}
+
+// ---- 归约 direct（AR010 T007 dsk last-slice-direct 主路径）------------------
+// 语义：C[i] = ((0 + P_0[i]) + … + P_{sk-2}[i]) + C[i]，P 含 sk-1 个切片，
+// 末源为 C 自身（由主体末片直写，值与旧全 P 路径的 P_{sk-1}[i] 逐位相同，
+// 加法链完全同序 ⇒ 与 v1 全 P 归约逐位等价）。
+// 实现：ILP4（4 相邻 float4/线程）+ P 读 __ldcs（一次性流读）+ C 写 __stcs；
+// C 读用默认加载（末片刚写、L2 热）。sk>=2 由调用方保证。
+__global__ void swsk_reduce_direct_kernel(const float* __restrict__ P,
+                                          float* __restrict__ C,
+                                          long long mn4, int sk) {
+    const long long idx4 = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    const long long i0 = idx4 * 4;
+    if (i0 < mn4) {
+        const bool has1 = (i0 + 1) < mn4;
+        const bool has2 = (i0 + 2) < mn4;
+        const bool has3 = (i0 + 3) < mn4;
+        const float4* p4 = reinterpret_cast<const float4*>(P);
+        float4* c4 = reinterpret_cast<float4*>(C);
+        float4 acc0 = make_float4(0.f, 0.f, 0.f, 0.f);
+        float4 acc1 = make_float4(0.f, 0.f, 0.f, 0.f);
+        float4 acc2 = make_float4(0.f, 0.f, 0.f, 0.f);
+        float4 acc3 = make_float4(0.f, 0.f, 0.f, 0.f);
+        for (int s = 0; s < sk - 1; ++s) {
+            const float4 v0 = __ldcs(&p4[s * mn4 + i0]);
+            acc0.x += v0.x; acc0.y += v0.y; acc0.z += v0.z; acc0.w += v0.w;
+            if (has1) {
+                const float4 v1 = __ldcs(&p4[s * mn4 + i0 + 1]);
+                acc1.x += v1.x; acc1.y += v1.y; acc1.z += v1.z; acc1.w += v1.w;
+            }
+            if (has2) {
+                const float4 v2 = __ldcs(&p4[s * mn4 + i0 + 2]);
+                acc2.x += v2.x; acc2.y += v2.y; acc2.z += v2.z; acc2.w += v2.w;
+            }
+            if (has3) {
+                const float4 v3 = __ldcs(&p4[s * mn4 + i0 + 3]);
+                acc3.x += v3.x; acc3.y += v3.y; acc3.z += v3.z; acc3.w += v3.w;
+            }
+        }
+        // 末源 = C（链序：全 P 路径的 P_{sk-1} 位置）
+        const float4 u0 = c4[i0];
+        acc0.x += u0.x; acc0.y += u0.y; acc0.z += u0.z; acc0.w += u0.w;
+        if (has1) {
+            const float4 u1 = c4[i0 + 1];
+            acc1.x += u1.x; acc1.y += u1.y; acc1.z += u1.z; acc1.w += u1.w;
+        }
+        if (has2) {
+            const float4 u2 = c4[i0 + 2];
+            acc2.x += u2.x; acc2.y += u2.y; acc2.z += u2.z; acc2.w += u2.w;
+        }
+        if (has3) {
+            const float4 u3 = c4[i0 + 3];
+            acc3.x += u3.x; acc3.y += u3.y; acc3.z += u3.z; acc3.w += u3.w;
+        }
+        __stcs(&c4[i0], acc0);
+        if (has1) __stcs(&c4[i0 + 1], acc1);
+        if (has2) __stcs(&c4[i0 + 2], acc2);
+        if (has3) __stcs(&c4[i0 + 3], acc3);
+    }
+}
+
+}  // namespace
+
+namespace sgemm {
+namespace detail {
+
+// ---- 确定性归约：C[i] = sum_s P[s*MN + i]，固定 z 序，每线程 1x float4 --
+// AR009 提升：自匿名命名空间 launch_reduce 暴露为跨单元入口（wsk 共享，
+// swsk/wsk 数值路径单一来源；实现零改动，仅命名空间与声明位置变化）
+void swsk_reduce(const float* P, float* C, long long mn, int sk) {
     const long long mn4 = mn / 4;   // 主路径 N%4==0 ⇒ M*N 整除 4
     const int block = 256;
-    const long long grid = (mn4 + block - 1) / block;
-    swsk_reduce_kernel<<<(unsigned)grid, block>>>(P, C, mn4, sk);
+    if (sgemm::g_reduce_ilp2 == 3) {
+        // v3（AR010 T007 --rv2=3）：ILP4 + __ldcs/__stcs（逐位等价，见 kernel 注释）
+        const long long quads = (mn4 + 3) / 4;
+        const long long grid = (quads + block - 1) / block;
+        swsk_reduce_v3_kernel<<<(unsigned)grid, block>>>(P, C, mn4, sk);
+    } else if (sgemm::g_reduce_ilp2) {
+        // v2（AR010 --rv2=1）：每线程 2 相邻 f4（MLP x2，逐位等价）
+        const long long pairs = (mn4 + 1) / 2;
+        const long long grid = (pairs + block - 1) / block;
+        swsk_reduce_v2_kernel<<<(unsigned)grid, block>>>(P, C, mn4, sk);
+    } else {
+        // v1（默认，AR008 以来语义/实现零改动）
+        const long long grid = (mn4 + block - 1) / block;
+        swsk_reduce_kernel<<<(unsigned)grid, block>>>(P, C, mn4, sk);
+    }
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        std::fprintf(stderr, "[swsk] reduce launch failed: %s\n",
+        std::fprintf(stderr, "[swsk_reduce] launch failed: %s\n",
                      cudaGetErrorString(err));
         std::exit(EXIT_FAILURE);
     }
 }
 
-}  // namespace
+// ---- 归约 direct（AR010 T007 dsk last-slice-direct 主路径）------------------
+// 前置：P 含 sk-1 个切片（末片已由主体直写 C）；sk>=2；mn%4==0。
+// 逐位等价：C = ((0+P_0)+…+P_{sk-2})+C，链序与全 P 归约 v1 完全一致。
+void swsk_reduce_direct(const float* P, float* C, long long mn, int sk) {
+    const long long mn4 = mn / 4;
+    const int block = 256;
+    const long long quads = (mn4 + 3) / 4;
+    const long long grid = (quads + block - 1) / block;
+    swsk_reduce_direct_kernel<<<(unsigned)grid, block>>>(P, C, mn4, sk);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        std::fprintf(stderr, "[swsk_reduce_direct] launch failed: %s\n",
+                     cudaGetErrorString(err));
+        std::exit(EXIT_FAILURE);
+    }
+}
+
+}  // namespace detail
+}  // namespace sgemm
 
 void sgemm_swpipe_sk(const float* A, const float* B, float* C,
                      int M, int N, int K) {
@@ -128,6 +298,6 @@ void sgemm_swpipe_sk(const float* A, const float* B, float* C,
     // ① split-K 主体：grid=(grid_n, grid_m, sk)，Out=P
     sgemm::detail::swpipe_tile_grid(A, B, g_ws.p, M, N, K,
                                     tps, num_tiles, grid_n, grid_m, sk);
-    // ② 确定性归约：P → C（固定 z 序）
-    launch_reduce(g_ws.p, C, (long long)M * N, sk);
+    // ② 确定性归约：P → C（固定 z 序；AR009 经 detail::swsk_reduce 共享）
+    sgemm::detail::swsk_reduce(g_ws.p, C, (long long)M * N, sk);
 }

@@ -1,4 +1,4 @@
-# cuda-sgemm 组件详细设计（组件_spec.md）
+﻿# cuda-sgemm 组件详细设计（组件_spec.md）
 
 > 本文件是组件层全局基准（WHAT 的 single source of truth）。各 AR 的 srs.md/design.md 不得与其冲突；
 > 实现过程中若组件契约需要变更，须经用户确认后先修订本文件。
@@ -86,7 +86,9 @@ void sgemm_cpasync_v2(const float* A, const float* B, float* C, int M, int N, in
 void sgemm_swpipe   (const float* A, const float* B, float* C, int M, int N, int K);  // K6 软件流水（AR007 扩展变体）：A/B 寄存器预取 + 单缓冲，无 cp.async 依赖，CLI 注册名 swpipe
 void sgemm_swpipe_sk(const float* A, const float* B, float* C, int M, int N, int K);  // K6 变体（AR008）：split-K + 确定性归约，内部 grow-only workspace，CLI 注册名 swsk
 void sgemm_ws       (const float* A, const float* B, float* C, int M, int N, int K);  // Kernel 7（AR008）：warp 专属化 producer/consumer + named barriers + 3 级 smem 环，CLI 注册名 ws
-void sgemm_auto     (const float* A, const float* B, float* C, int M, int N, int K);  // 自动选核（AR008 T006）：blocks=ceil(M/128)·ceil(N/128) 几何带判（≤4→swsk12 / ≤64→swsk4 / 其余→swpipe），K 钳制 sk≤ceil(K/8)，CLI 注册名 auto（registry K_AUTO=11）
+void sgemm_auto     (const float* A, const float* B, float* C, int M, int N, int K);  // 自动选核 v2（AR009 T006）：blocks=ceil(M/128)·ceil(N/128) 几何带判（≤4→swsk6 / ≤64→swsk3 / 其余→swpipe，1620 MHz 稳态实测回填），K 钳制 sk≤ceil(K/8)，CLI 注册名 auto（registry K_AUTO=11）
+void sgemm_wide     (const float* A, const float* B, float* C, int M, int N, int K);  // Kernel 8（AR009）：512 线程宽块双角色流水（64×256 tile，TM4×TN8），CLI 注册名 wide（K_WIDE=12）
+void sgemm_wsk      (const float* A, const float* B, float* C, int M, int N, int K);  // Kernel 8 变体（AR009）：wide + split-K（复用 detail::swsk_reduce 确定性归约，与 swsk 数值同源逐位一致），CLI 注册名 wsk（K_WSK=13，KERNEL_COUNT=14）
 ```
 
 ### 4.2 cuBLAS FP32 基线（公平性契约）
@@ -183,9 +185,10 @@ sanitizer：发布前 `compute-sanitizer --tool memcheck` 干净；cp.async 版�
 |------|--------|------|------|------------------|
 | `--bk` | smem1d | {8,16,32} | **32** | 4096³：bk8=2502.8 / bk16=2978.0 / bk32=3226.6 GF（bk32 最优 +8.3%，AR007 固化） |
 | `--lb` | tile2d、ws | {1,2} | 1 | tile2d：114/111 regs 0 spill 并列（AR004）；ws：1 block 31% vs 2 block 62.5% 占用（AR008 消融）。**swpipe/swsk 已移出**（AR008 T003 实测固化：参数化后无约束实例 130 regs → 1 block/SM，1024³ 4314 vs 4617 GF=-7.0%；tile 主体固定 `__launch_bounds__(256,2)`=128 regs 封顶，即 AR007 基线 127 regs 的 2-block 等价物） |
-| `--sk` | swsk | {1..16} | **4** | AR008 sk 扫描实测回填（初值 4；512³ 预期 8-12）；sk=1 旁路直走 swpipe |
+| `--sk` | swsk、wsk | {1..16} | **4** | AR008 sk 扫描实测回填（初值 4；512³ 预期 8-12）；sk=1 旁路直走 swpipe/wide；wsk 最优 sk 随尺寸：256³→12 / 512³+→3（AR009 T004） |
 | `--stages` | ws | {2,3} | **3** | smem 环深度（stage=8.3KB：2→16.6KB / 3→24.9KB≤32KB）；3 级覆盖 ~2 tile DRAM 抖动，2 级为消融下界 |
 | `--wp` | ws | {1,2} | **2** | producer warp 数（1+8=288 / 2+8=320 线程）；T008 实测 PW=1 全尺寸负收益（单 warp 搬运吞吐不足喂 8 consumer warp） |
+| `--wlb` | wide、wsk | {1,2} | **2** | wide 族 `__launch_bounds__` minBlocksPerMultiprocessor（LB=2 → 64 regs = 2×512 线程恰满 64K → 100% 占用判据）；AR009 T005 裁定占用率非杠杆（LB1/LB2 ±0-4% 符号翻转），旋钮保留作消融复现；与 tile2d/ws 的 `--lb` 分钮避免默认语义污染 |
 | `--rounds` | 全部 | ≥1（0 → CLI_ERROR） | 1 | 多轮门控语义见 §4.3；rounds=1 与历史数据逐位可比 |
 
 非默认值跑出的数据行落 CSV 时**必须**带可区分标记（消融经 `SGEMM_CSV` 环境变量
@@ -269,6 +272,24 @@ LB=2 占用率增益被否；负结果如实归档（bottleneck_analysis.md 闭�
 ws 保留为教学阶梯（racecheck 0 hazards 硬门已过，110/110）。配套 `--kernel auto`
 实测驱动选核表（几何公式种子 + T004/T009 实测覆盖）与 thermal-paired 配对测量协议
 （对内 delta 消除 WDDM 热漂移，srs AR008 §4 四门 v2）。
+
+### Kernel 8 — wide/wsk：512 线程宽块双角色流水（AR009，占用率假说证伪 + LDS 带宽墙确证）
+针对 AR008 遗留的占用率墙（swpipe 128 regs → 2 block/SM = 50% warp slots）：**512 线程宽块**
+（Block Tile **64×256×8**，TM4×TN8 = 32 acc/线程）双角色流水——搬运期 tid<256 为 A loader
+（转置散射）、tid≥256 为 B loader（swizzle 直拷），恰 512 quads = 512 线程 1 float4/线程；
+计算期全 512 线程 32×16 网格；单缓冲双 `__syncthreads`；寻址基址预计算 + Out 指针延迟物化
+压寄存器（首轮 64regs+8B spill → 重构后 **LB=2 = 64 regs/0 spill**，2×512×64 = 65536 恰满
+64K/SM → **100% warp slots 占用达成**）；模板\<LB\> 双实例（`--wlb {1,2}`）。wsk 变体 =
+wide + split-K（grid.z 扩 SK，workspace 自备 RAII，复用 detail::swsk_reduce 与 swsk 数值
+同源——1024³sk4/256³sk12 双方 max_abs 逐位一致）。
+**AR009 实测裁定（三重独立证据）：占用率假说否定，真墙 = LDS.128 带宽**——
+①T002：wide LB=1(50%) vs LB=2(100%) 全尺寸同速；②T004：半填充 sk3(1 block/SM) 反超满填充
+sk6（wsk +18%/swsk +25% @512³）——split 开销 > warp 并行收益；③T005：LB 效应 ±0-4% 符号
+随配置翻转（2048³ 50% 反而 +2.2%）。wide/wsk best-vs-best 全尺寸 0.57-0.75× 于 swsk 最优
+（LDS:FFMA = 1:16 vs swpipe 平衡点 3:32，sm_75 FP32 Pareto）。负结果完整归档
+（fig16/17/18/21 + bottleneck_analysis.md 闭环 #4）；配套成果：稳态测量纪律（1620 MHz
+持续态，8/8 探针丝毫不差）、auto v2 dispatch 回填（512³ +21.5% / 1024³ +13.3%）、
+G3 首过（swpipe@4096³ 7185.3 = 7.0T 门 102.6%）。
 
 ---
 

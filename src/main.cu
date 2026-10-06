@@ -161,13 +161,34 @@ int main(int argc, char** argv) {
                      "[note] --wp applies to kernel 'ws' only (ignored for '%s')\n",
                      opt.kernel.c_str());
     }
-    if (opt.kernel == "swsk") {
+    if (opt.kernel == "swsk" || opt.kernel == "wsk" || opt.kernel == "dsk") {
         sgemm::g_swsk_slices = opt.sk;
     } else if (opt.sk != 4) {
         std::fprintf(stderr,
-                     "[note] --sk applies to kernel 'swsk' only (ignored for '%s')\n",
-                     opt.kernel.c_str());
+                      "[note] --sk applies to kernel 'swsk'/'wsk'/'dsk' only (ignored for '%s')\n",
+                      opt.kernel.c_str());
     }
+    // AR009：wide/wsk 的 LB 消融旋钮（--wlb，默认 2 = 100% 占用目标；
+    // 与 tile2d/ws 的 --lb 分钮，避免跨 kernel 默认语义污染）
+    if (opt.kernel == "wide" || opt.kernel == "wsk") {
+        sgemm::g_wide_min_blocks = opt.wlb;
+    } else if (opt.wlb != 2) {
+        std::fprintf(stderr,
+                      "[note] --wlb applies to kernel 'wide'/'wsk' only (ignored for '%s')\n",
+                      opt.kernel.c_str());
+    }
+    // AR010：deep/dsk 的 smem 双缓冲消融旋钮（--dbuf，默认 1 = 双缓冲单同步；
+    // AR010 T004 实测 dbuf1 全尺寸 +3~14%，数据裁定翻转默认值）
+    if (opt.kernel == "deep" || opt.kernel == "dsk") {
+        sgemm::g_deep_dbuf = opt.dbuf;
+    } else if (opt.dbuf != 1) {
+        std::fprintf(stderr,
+                      "[note] --dbuf applies to kernel 'deep'/'dsk' only (ignored for '%s')\n",
+                      opt.kernel.c_str());
+    }
+    // AR010：split-K 归约 ILP2 消融旋钮（--rv2，全局生效：swsk/wsk/dsk 共享
+    // detail::swsk_reduce 单一数值路径，v1/v2 逐位等价）
+    sgemm::g_reduce_ilp2 = opt.rv2;
     // 环境信息头（AGENTS.md §5：每次输出附版本信息）
     int drv = 0, rt = 0;
     cudaDriverGetVersion(&drv);

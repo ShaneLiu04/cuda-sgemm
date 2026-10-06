@@ -1,0 +1,155 @@
+==================================================================
+ cuda-sgemm correctness suite | git=84e261f
+ tolerance: max|C-C_ref| / max|C_ref| <= 1e-4
+==================================================================
+------------------------------------------------------------------
+ kernel: naive
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1024x1024x1024  fast regression                             max_abs=7.057e-05 rel=1.179e-06  PASS
+   256x 256x 256  fast regression                             max_abs=1.287e-05 rel=5.341e-07  (vs CPU: abs=1.170e-05 rel=4.853e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=7.629e-05 rel=1.573e-06  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=2.384e-06 rel=2.358e-07  (vs CPU: abs=1.899e-06 rel=1.879e-07)  PASS
+------------------------------------------------------------------
+ kernel: coalesced
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1024x1024x1024  fast regression                             max_abs=7.057e-05 rel=1.179e-06  PASS
+   256x 256x 256  fast regression                             max_abs=1.287e-05 rel=5.341e-07  (vs CPU: abs=1.170e-05 rel=4.853e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=7.629e-05 rel=1.573e-06  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=2.384e-06 rel=2.358e-07  (vs CPU: abs=1.899e-06 rel=1.879e-07)  PASS
+------------------------------------------------------------------
+ kernel: smem1d
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1024x1024x1024  fast regression                             max_abs=7.057e-05 rel=1.179e-06  PASS
+   256x 256x 256  fast regression                             max_abs=1.287e-05 rel=5.341e-07  (vs CPU: abs=1.170e-05 rel=4.853e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=7.629e-05 rel=1.573e-06  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=2.384e-06 rel=2.358e-07  (vs CPU: abs=1.899e-06 rel=1.879e-07)  PASS
+------------------------------------------------------------------
+ kernel: tile2d
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1024x1024x1024  fast regression                             max_abs=7.057e-05 rel=1.179e-06  PASS
+   256x 256x 256  fast regression                             max_abs=1.287e-05 rel=5.341e-07  (vs CPU: abs=1.170e-05 rel=4.853e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=7.629e-05 rel=1.573e-06  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=2.384e-06 rel=2.358e-07  (vs CPU: abs=1.899e-06 rel=1.879e-07)  PASS
+------------------------------------------------------------------
+ kernel: vec4
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1024x1024x1024  fast regression                             max_abs=7.057e-05 rel=1.179e-06  PASS
+   256x 256x 256  fast regression                             max_abs=1.287e-05 rel=5.341e-07  (vs CPU: abs=1.170e-05 rel=4.853e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=7.629e-05 rel=1.573e-06  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=2.384e-06 rel=2.358e-07  (vs CPU: abs=1.899e-06 rel=1.879e-07)  PASS
+------------------------------------------------------------------
+ kernel: cpasync
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1024x1024x1024  fast regression                             max_abs=7.057e-05 rel=1.179e-06  PASS
+   256x 256x 256  fast regression                             max_abs=1.287e-05 rel=5.341e-07  (vs CPU: abs=1.170e-05 rel=4.853e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=7.629e-05 rel=1.573e-06  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=2.384e-06 rel=2.358e-07  (vs CPU: abs=1.899e-06 rel=1.879e-07)  PASS
+------------------------------------------------------------------
+ kernel: cpasync2
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1024x1024x1024  fast regression                             max_abs=7.057e-05 rel=1.179e-06  PASS
+   256x 256x 256  fast regression                             max_abs=1.287e-05 rel=5.341e-07  (vs CPU: abs=1.170e-05 rel=4.853e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=7.629e-05 rel=1.573e-06  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=2.384e-06 rel=2.358e-07  (vs CPU: abs=1.899e-06 rel=1.879e-07)  PASS
+------------------------------------------------------------------
+ kernel: swpipe
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1024x1024x1024  fast regression                             max_abs=7.057e-05 rel=1.179e-06  PASS
+   256x 256x 256  fast regression                             max_abs=1.287e-05 rel=5.341e-07  (vs CPU: abs=1.170e-05 rel=4.853e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=7.629e-05 rel=1.573e-06  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=2.384e-06 rel=2.358e-07  (vs CPU: abs=1.899e-06 rel=1.879e-07)  PASS
+------------------------------------------------------------------
+ kernel: swsk
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=3.281e-04 rel=2.740e-06  PASS
+  1024x1024x1024  fast regression                             max_abs=3.433e-05 rel=5.733e-07  PASS
+   256x 256x 256  fast regression                             max_abs=5.245e-06 rel=2.176e-07  (vs CPU: abs=4.680e-06 rel=1.941e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=3.052e-05 rel=6.290e-07  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=2.384e-06 rel=2.358e-07  (vs CPU: abs=1.899e-06 rel=1.879e-07)  PASS
+------------------------------------------------------------------
+ kernel: ws
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1024x1024x1024  fast regression                             max_abs=7.057e-05 rel=1.179e-06  PASS
+   256x 256x 256  fast regression                             max_abs=1.287e-05 rel=5.341e-07  (vs CPU: abs=1.170e-05 rel=4.853e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=7.629e-05 rel=1.573e-06  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=2.384e-06 rel=2.358e-07  (vs CPU: abs=1.899e-06 rel=1.879e-07)  PASS
+------------------------------------------------------------------
+ kernel: cublas
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1024x1024x1024  fast regression                             max_abs=0.000e+00 rel=0.000e+00  PASS
+   256x 256x 256  fast regression                             max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.734e-06 rel=1.134e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=8.996e-07 rel=8.899e-08)  PASS
+------------------------------------------------------------------
+ kernel: auto
+------------------------------------------------------------------
+  4096x4096x4096  main scene                                  max_abs=0.000e+00 rel=0.000e+00  PASS
+  1024x1024x1024  fast regression                             max_abs=3.433e-05 rel=5.733e-07  PASS
+   256x 256x 256  fast regression                             max_abs=3.815e-06 rel=1.582e-07  (vs CPU: abs=4.044e-06 rel=1.678e-07)  PASS
+  1000x1016x1024  non-square                                  max_abs=3.052e-05 rel=6.290e-07  PASS
+  1023x1024x 511  edge: no tile align, K%4!=0 -> fallback     max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.321e-05 rel=8.969e-07)  PASS
+   130x 257x  66  edge: N%4!=0 -> fallback                    max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=3.299e-06 rel=2.907e-07)  PASS
+    64x  64x   1  degenerate K=1                              max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=2.977e-08 rel=2.998e-08)  PASS
+     1x   1x   1  degenerate 1x1x1                            max_abs=0.000e+00 rel=0.000e+00  (vs CPU: abs=9.095e-10 rel=9.165e-10)  PASS
+    17x  33x  65  tiny odd sizes                              max_abs=2.384e-06 rel=2.358e-07  (vs CPU: abs=1.899e-06 rel=1.879e-07)  PASS
+------------------------------------------------------------------
+ cublas row-major self-check (vs CPU double)
+   256x 256x 256  vs CPU double rel=1.134e-07  PASS
+   100x 253x  61  vs CPU double rel=1.271e-07  PASS
+==================================================================
+ SUMMARY: 110 / 110 PASS  ->  ALL PASS
+==================================================================
