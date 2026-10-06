@@ -53,7 +53,7 @@ namespace sgemm {
 // CLI 选项（参数表冻结于 AR001，详设 §3）
 // ---------------------------------------------------------------------
 struct CliOptions {
-    std::string kernel = "naive";   // naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|swpipe|swsk|ws|auto|cublas|all
+    std::string kernel = "naive";   // naive|...|wide|wsk|deep|dsk|all
     int m = 4096;
     int n = 4096;
     int k = 4096;
@@ -65,9 +65,16 @@ struct CliOptions {
     int bk = 32;                    // smem1d 的 BK 消融旋钮（8/16/32；默认 32，AR007 实测固化）
     int lb = 1;                     // tile2d 的 __launch_bounds__ minBlocks 消融旋钮（1/2；
                                     //  swpipe/swsk 已固化 128-reg 包络，AR008 收窄语义）
-    int sk = 4;                     // swsk 的 split-K 片数消融旋钮（1..16；默认 4，AR008 详设 §4.6）
+    int sk = 4;                     // swsk/wsk/dsk 的 split-K 片数消融旋钮（1..16；默认 4，详设 §4.6）
     int stages = 3;                 // ws 的 smem 环深度消融旋钮（2/3；默认 3，AR008 详设 §4.6）
     int wp = 2;                     // ws 的 producer warp 数消融旋钮（1/2；默认 2，AR008 详设 §4.6）
+    int wlb = 2;                    // wide/wsk 的 __launch_bounds__ minBlocks 消融旋钮（1/2；
+                                    //  默认 2 = 64 regs/100% 占用目标，AR009 详设 §4.6）
+    int dbuf = 1;                   // deep/dsk 的 smem 双缓冲消融旋钮（0/1；默认 1 = 双缓冲
+                                    //  单同步，AR010 T004 实测全尺寸 +3~14% 翻转；0 = 单缓冲
+                                    //  双同步，AR010 详设 §4.6）
+    int rv2 = 0;                    // swsk/wsk/dsk 归约 ILP2 消融旋钮（0/1；默认 0 = 1 f4/线程
+                                    //  v1，1 = 2 f4/线程 v2 逐位等价，AR010 详设 §4.6）
     int rounds = 1;                 // 多轮统计轮数（AR007；1=单轮，与历史语义一致）
     bool list_kernels = false;
     bool help = false;
@@ -76,7 +83,7 @@ struct CliOptions {
 inline void print_usage(const char* prog) {
     std::printf(
         "Usage: %s --kernel <name> [options]\n"
-        "  --kernel   naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|swpipe|swsk|ws|auto|cublas|all\n"
+        "  --kernel   naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|swpipe|swsk|ws|auto|cublas|wide|wsk|deep|dsk|all\n"
         "  --m/--n/--k          problem size (default 4096)\n"
         "  --warmup <n>         warmup iterations (default 20, spec: >=20)\n"
         "  --iters  <n>         timed iterations (default 100, spec: >=100)\n"
@@ -86,9 +93,16 @@ inline void print_usage(const char* prog) {
         "  --csv                append result row to results/performance.csv\n"
         "  --bk <8|16|32>       BK ablation knob for smem1d (default 32)\n"
         "  --lb <1|2>           __launch_bounds__ minBlocks ablation for tile2d/ws (default 1)\n"
-        "  --sk <1..16>         split-K slices for swsk (default 4; 1 = bypass to swpipe)\n"
+        "  --sk <1..16>         split-K slices for swsk/wsk/dsk (default 4; 1 = bypass to swpipe/wide/deep)\n"
         "  --stages <2|3>       smem ring depth for ws (default 3)\n"
         "  --wp <1|2>           producer warp count for ws (default 2; 2+8=320 threads)\n"
+        "  --wlb <1|2>          __launch_bounds__ minBlocks ablation for wide/wsk (default 2;\n"
+        "                       2 = 64 regs -> 2 blocks/SM -> 100%% occupancy)\n"
+        "  --dbuf <0|1>         smem double-buffer ablation for deep/dsk (default 1 = 2 buffers,\n"
+        "                       1 sync/tile, 24832B; AR010 T004 measured +3~14%% at every size)\n"
+        "  --rv2 <0|1|3>        split-K reduce variant ablation for swsk/wsk/dsk (default 0;\n"
+        "                       0 = v1 1 f4/thread; 1 = v2 ILP2; 3 = v3 ILP4 + __ldcs/__stcs\n"
+        "                       streaming hints, bit-identical chain order)\n"
         "  --verbose            print dispatch/fallback details\n"
         "  --list-kernels       list registered kernels\n"
         "  --help               this message\n",
@@ -118,6 +132,9 @@ inline CliOptions parse_cli(int argc, char** argv) {
         else if (a == "--sk")           opt.sk = std::atoi(next(a.c_str()));
         else if (a == "--stages")       opt.stages = std::atoi(next(a.c_str()));
         else if (a == "--wp")           opt.wp = std::atoi(next(a.c_str()));
+        else if (a == "--wlb")          opt.wlb = std::atoi(next(a.c_str()));
+        else if (a == "--dbuf")         opt.dbuf = std::atoi(next(a.c_str()));
+        else if (a == "--rv2")          opt.rv2 = std::atoi(next(a.c_str()));
         else if (a == "--check")        opt.check = true;
         else if (a == "--csv")          opt.csv = true;
         else if (a == "--verbose")      opt.verbose = true;
@@ -151,6 +168,18 @@ inline CliOptions parse_cli(int argc, char** argv) {
     }
     if (opt.wp != 1 && opt.wp != 2) {
         std::fprintf(stderr, "[CLI_ERROR] --wp must be 1 or 2 (got %d)\n", opt.wp);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.wlb != 1 && opt.wlb != 2) {
+        std::fprintf(stderr, "[CLI_ERROR] --wlb must be 1 or 2 (got %d)\n", opt.wlb);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.dbuf != 0 && opt.dbuf != 1) {
+        std::fprintf(stderr, "[CLI_ERROR] --dbuf must be 0 or 1 (got %d)\n", opt.dbuf);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.rv2 != 0 && opt.rv2 != 1 && opt.rv2 != 3) {
+        std::fprintf(stderr, "[CLI_ERROR] --rv2 must be 0, 1 or 3 (got %d)\n", opt.rv2);
         std::exit(EXIT_FAILURE);
     }
     return opt;

@@ -42,6 +42,32 @@ void sgemm_ws(const float* A, const float* B, float* C, int M, int N, int K);
 // 自动选核（AR008 T006）：几何 dispatch（blocks=ceil(M/128)*ceil(N/128) 带判
 // + K 钳制），表值由 T004/T005 实测回填（≤4→swsk12 / ≤64→swsk4 / 其余→swpipe）
 void sgemm_auto(const float* A, const float* B, float* C, int M, int N, int K);
+// Kernel 8（AR009）：宽块占用率攻坚——512 线程（16 warp）× 128×128 tile，
+// 每线程 TM=4×TN=8（32 acc），寄存器预算 ≤64（__launch_bounds__(512,2)）
+// → 2 block/SM = 1024 线程 = 100% 占用（破除 swpipe 系 128 regs→50% 墙）。
+// 搬运双角色：tid<256 载 A / tid>=256 载 B（每线程恰 1×float4）；布局/流水/
+// swizzle 结论三承 swpipe（A 转置+PAD4、B XOR swizzle、单缓冲双同步、
+// 寄存器预取混合流）。LB 消融 --wlb（g_wide_min_blocks，默认 2）。
+void sgemm_wide(const float* A, const float* B, float* C, int M, int N, int K);
+// Kernel 8 变体（AR009）：wide 的 split-K——主体经 detail::wide_tile_grid
+// 参数化复用（z 切片 + Out_base），归约复用 detail::swsk_reduce（与 swsk
+// 共享单一确定性数值路径）；--sk 旋钮对 swsk/wsk 双生效。
+void sgemm_wsk(const float* A, const float* B, float* C, int M, int N, int K);
+// Kernel 9（AR010）：128-acc 深寄存器分块——tile 256×128×BK8，block 256 线程
+// （16×16），每线程 TM=16×TN=8 = 128 累加器，LDS:FFMA = 6 LDS.128 : 128 FFMA
+// = 1:21.3（acc-per-LDS 16→21.3，直击 AR009 实证的 LDS.128 带宽墙）；TM>TN
+// 几何使 B 片段保持 stride-2 quad（swpipe swizzle 消冲突域逐位继承）、A 片段
+// warp 级广播；占用 1 block/SM = 8 warp = 25%，以 128 条独立 FMA 链的 ILP
+// 替代 TLP（与 AR009 占用率证伪构成完整消融矩阵）。__launch_bounds__(256,1)
+// = 255 regs 封顶，0 spill 硬门。--dbuf 消融（g_deep_dbuf，默认 0）：
+// 0 = 单缓冲双同步（swpipe 同构）；1 = 双缓冲单同步（As[2]+Bs[2]=24832B，
+// 同步 2→1/tile，25% 占用下的延迟对冲路径）。
+void sgemm_deep(const float* A, const float* B, float* C, int M, int N, int K);
+// Kernel 9 变体（AR010）：deep 的 split-K——主体经 detail::deep_tile_grid
+// 参数化复用（z 切片 + Out_base），归约复用 detail::swsk_reduce；波几何：
+// 1024³ grid 4×8=32 blocks × sk3 = 96 = 2 精确波（1 block/SM × 48 slots）；
+// --sk 旋钮对 swsk/wsk/dsk 三生效。
+void sgemm_dsk(const float* A, const float* B, float* C, int M, int N, int K);
 
 // ---- cuBLAS FP32 基线（严格 CUBLAS_DEFAULT_MATH，详设 §4.2）-----------
 void sgemm_cublas(const float* A, const float* B, float* C, int M, int N, int K);
@@ -57,6 +83,25 @@ namespace sgemm { namespace detail {
 void swpipe_tile_grid(const float* A, const float* B, float* Out_base,
                       int M, int N, int K, int tps, int num_tiles,
                       int grid_n, int grid_m, int grid_z);
+// AR009：wide tile 主体参数化入口（wsk 共享；契约同 swpipe_tile_grid，
+// block=512 线程，LB 实例由 g_wide_min_blocks 选择）
+void wide_tile_grid(const float* A, const float* B, float* Out_base,
+                    int M, int N, int K, int tps, int num_tiles,
+                    int grid_n, int grid_m, int grid_z);
+// AR010：deep tile 主体参数化入口（dsk 共享；契约同 swpipe/wide_tile_grid，
+// block=256 线程（16×16），DBUF 实例由 g_deep_dbuf 选择）。
+// T007 last-slice-direct：Out_last = 末片输出目标；传 Out_last==Out_base
+// 关闭直写（行为与旧签名逐字一致）；dsk 主路径传 C。
+void deep_tile_grid(const float* A, const float* B, float* Out_base,
+                    float* Out_last,
+                    int M, int N, int K, int tps, int num_tiles,
+                    int grid_n, int grid_m, int grid_z);
+// AR009：确定性归约提升（自 swpipe_sk.cu launch_reduce；swsk/wsk 共享，
+// C[i] = Σ_z P[z*MN+i] 固定 z 序，逐位可复现）
+void swsk_reduce(const float* P, float* C, long long mn, int sk);
+// AR010 T007：last-slice-direct 归约（dsk 主路径）——P 含 sk-1 个切片，
+// C[i] = ((0+P_0)+…+P_{sk-2})+C[i]，链序与 swsk_reduce v1 逐位一致
+void swsk_reduce_direct(const float* P, float* C, long long mn, int sk);
 }}
 
 // ---- 消融旋钮（由 main CLI 注入；默认值与详设 §4.6 一致）----------------
@@ -67,6 +112,15 @@ extern int g_swsk_slices;        // --sk，默认 4（AR008 swsk split-K 片数�
 extern int g_ws_stages;          // ws 环深度，默认 3（消融 2/3）
 extern int g_ws_min_blocks;      // ws __launch_bounds__ 消融，默认 1（1/2）
 extern int g_ws_prod_warps;      // ws producer warp 数，默认 2（消融 1/2）
+extern int g_wide_min_blocks;    // wide/wsk __launch_bounds__ 消融，默认 2（1/2；
+                                 //   LB=2 = 64 regs 100% 占用目标，LB=1 = spill 保底）
+extern int g_deep_dbuf;          // deep/dsk smem 双缓冲消融，默认 1（0/1；
+                                 //   1 = 双缓冲单同步（AR010 T004 实测全尺寸
+                                 //   +3~14% 数据裁定），0 = 单缓冲双同步）
+extern int g_reduce_ilp2;        // swsk/wsk/dsk 归约实现消融，默认 0（0/1/3；
+                                  //   0 = v1 1 f4/线程，1 = v2 2 f4/线程（dsk -4%
+                                  //   负结果），3 = v3 4 f4/线程 + __ldcs/__stcs
+                                  //   流式（AR010 T007 攻坚，逐位等价））
 extern bool g_verbose;           // 打印回退路径细节（测试断言路径覆盖用）
 }
 
@@ -75,12 +129,13 @@ namespace sgemm {
 inline constexpr int K_NAIVE = 0, K_COALESCED = 1, K_SMEM1D = 2, K_TILE2D = 3,
                       K_VEC4 = 4, K_CPASYNC = 5, K_CPASYNC2 = 6, K_SWPIPE = 7,
                       K_SWSK = 8, K_WS = 9, K_CUBLAS = 10, K_AUTO = 11,
-                      KERNEL_COUNT = 12;
+                      K_WIDE = 12, K_WSK = 13, K_DEEP = 14, K_DSK = 15,
+                      KERNEL_COUNT = 16;
 
 inline const char* kernel_name(int id) {
     static const char* names[KERNEL_COUNT] = {
         "naive", "coalesced", "smem1d", "tile2d", "vec4", "cpasync", "cpasync2",
-        "swpipe", "swsk", "ws", "cublas", "auto"};
+        "swpipe", "swsk", "ws", "cublas", "auto", "wide", "wsk", "deep", "dsk"};
     return (id >= 0 && id < KERNEL_COUNT) ? names[id] : "unknown";
 }
 
@@ -95,7 +150,8 @@ inline SgemmFn kernel_fn(int id) {
     static const SgemmFn fns[KERNEL_COUNT] = {
         sgemm_naive, sgemm_coalesced, sgemm_smem_1d, sgemm_2d_tile,
         sgemm_vec4,  sgemm_cpasync,   sgemm_cpasync_v2,
-        sgemm_swpipe, sgemm_swpipe_sk, sgemm_ws, sgemm_cublas, sgemm_auto};
+        sgemm_swpipe, sgemm_swpipe_sk, sgemm_ws, sgemm_cublas, sgemm_auto,
+        sgemm_wide, sgemm_wsk, sgemm_deep, sgemm_dsk};
     return (id >= 0 && id < KERNEL_COUNT) ? fns[id] : nullptr;
 }
 }  // namespace sgemm

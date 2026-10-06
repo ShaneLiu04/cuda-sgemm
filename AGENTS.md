@@ -1,4 +1,4 @@
-# AGENTS.md — cuda-sgemm 组件开发约定
+﻿# AGENTS.md — cuda-sgemm 组件开发约定
 
 > 本文件是本工程所有 AI Agent 与开发者必须遵守的开发约定。与 `specs/component-detail-design/cuda_sgemm_spec.md`
 > （组件详设，全局基准）配合使用。任何与本文件冲突的临时决定必须先修订本文件再执行。
@@ -37,9 +37,11 @@ cuda-sgemm/
 
 - **消融旋钮**（AR008 起冻结，默认值与依据见详设 §4.6）：`--bk`（smem1d，默认 32）、
   `--lb`（tile2d/ws，默认 1；swpipe/swsk 固化 128-reg 封顶，AR008 实测收窄）、
-  `--sk`（swsk split-K 片数，默认 4，1..16）、
+  `--sk`（swsk/wsk split-K 片数，默认 4，1..16）、
   `--stages`（ws smem 环深度，默认 3，2/3）、
   `--wp`（ws producer warp 数，默认 2，1/2）、
+  `--wlb`（wide/wsk launch_bounds minBlocks，默认 2，1/2；与 tile2d/ws 的 --lb 分钮，
+  AR009 T005 实测裁定占用率非杠杆，旋钮保留作消融复现）、
   `--rounds N`（多轮门控统计，默认 1，0 → CLI_ERROR）。
   非默认参数跑出的数据必须经 `SGEMM_CSV` 环境变量分流到独立 CSV，禁止污染主 `performance.csv`。
 

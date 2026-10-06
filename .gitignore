@@ -5,8 +5,9 @@ build/
 *.lib
 *.exe
 
-# 测试套件本地输出（正式证据归档到 results/test_correctness_<date>.log）
-tests/suite_out.txt
+# ptxas 审计日志：build.log 为唯一留档（AGENTS §3：寄存器/smem 用量是验收数据）
+*.log
+!build.log
 
 # ncu 原始报告本地留存（TEST_PLAN §9：csv/details.txt 提交，.ncu-rep 忽略）
 *.ncu-rep
