@@ -2928,6 +2928,134 @@ def fig31_lat_cover():
 
 fig31_lat_cover()
 
+
+# ---------------- AR011 fig32: Stream-K W sweep triptych ----------------
+# 数据/证据：results/streamk_ar011.csv（2026-10-07 实测，git=8104293 构建
+# 二进制，3 轮中位，v4 协议 47C 冷却 + cublas 首锚；canonical 六尺寸 ×
+# W 深扫 + 四参照）。1024^3 分段基线 297+41μs 为 AR010 实测（同 1620
+# 稳态域，跨会话可比；cublas 本会话轮首冷跑 boost 偏高，图内标注）。
+# 结论：W=1 全尺寸最优（W>1 单调负 = P 税 + 块/SM 占用损失）；
+# 1024^3 G1 翻门失败（5461 vs dsk 6279 = 87%）；2048^3 streamk_w1
+# 8721 = 85.4% cublas（G6 边缘）= +2.1% over deep（波量化税实测）。
+def fig32_streamk_sweep():
+    import statistics as st
+    csv_path = os.path.join(OUT_DIR, "..", "streamk_ar011.csv")
+    if not os.path.exists(csv_path):
+        print("fig32 skipped (streamk_ar011.csv missing)")
+        return
+    rows = [r for r in csv.DictReader(
+        filter(lambda l: not l.startswith("#"), open(csv_path)))
+        if r.get("kernel")]
+    med = {}
+    for r in rows:
+        key = (int(r["m"]), int(r["n"]), int(r["k"]), r["kernel"])
+        med.setdefault(key, []).append(float(r["gflops"]))
+    for k in med:
+        med[k] = st.median(med[k])
+
+    SIZES = [(256, 256, 256), (512, 512, 512), (1024, 1024, 1024),
+             (1000, 1016, 1024), (2048, 2048, 2048), (4096, 4096, 4096)]
+    labels = ["256$^3$", "512$^3$", "1024$^3$", "1000x1016\nx1024",
+              "2048$^3$", "4096$^3$"]
+
+    fig, (ax1, ax2, ax3) = plt.subplots(
+        1, 3, figsize=(17.2, 5.7),
+        gridspec_kw={"width_ratios": [1.5, 1.15, 1.0]})
+
+    # ---- (a) 全尺寸阶梯：四参照 + streamk_w1 ----
+    cfgs = [("cublas", "cuBLAS", "#c62828", "o"),
+            ("deep", "deep", "#455a64", "s"),
+            ("dsk_sk3", "dsk sk3", "#1976d2", "^"),
+            ("swsk_sk6", "swsk sk6", "#8d6e63", "D"),
+            ("swsk_sk3", "swsk sk3", "#8d6e63", "D"),
+            ("streamk_w1", "streamk W=1", "#2e7d32", "*")]
+    x = np.arange(len(SIZES))
+    for name, lab, col, mk in cfgs:
+        ys = [med.get(s + (name,), np.nan) for s in SIZES]
+        if np.all(np.isnan(ys)):
+            continue
+        ax1.plot(x, ys, color=col, marker=mk, ms=7 if mk == "*" else 5,
+                 lw=1.6, label=lab, zorder=3)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(labels, fontsize=8.5)
+    ax1.set_ylabel("GFLOPS (3-round median)", fontsize=10)
+    ax1.set_ylim(0, 11600)
+    ax1.legend(fontsize=8, ncol=3, loc="upper left")
+    ax1.grid(axis="y", alpha=0.3, zorder=0)
+    ax1.set_title("(a) full-size ladder: streamk W=1 wins only @2048$^3$;\n"
+                  "swsk holds small sizes (dispatch keeps swsk/deep/dsk)",
+                  fontsize=9.5)
+
+    # ---- (b) W sweep 曲线：主战场尺寸 GF vs W ----
+    wsets = [((1024, 1024, 1024), "1024$^3$", "#1976d2", 1, 8),
+             ((1000, 1016, 1024), "1000x1016x1024", "#7b1fa2", 1, 6),
+             ((2048, 2048, 2048), "2048$^3$", "#2e7d32", 1, 8),
+             ((4096, 4096, 4096), "4096$^3$", "#e64a19", 1, 6)]
+    for s, lab, col, w0, w1 in wsets:
+        ws = list(range(w0, w1 + 1))
+        ys = [med.get(s + (f"streamk_w{w}",), np.nan) for w in ws]
+        ax2.plot(ws, ys, color=col, marker="o", ms=4.5, lw=1.6,
+                 label=lab, zorder=3)
+    # 各尺寸 dsk_sk3 参考虚线（与曲线同色淡显）
+    for s, lab, col, w0, w1 in wsets:
+        ref = med.get(s + ("dsk_sk3",), np.nan)
+        ax2.hlines(ref, 0.6, w1 + 0.4, color=col, ls=":", lw=1.0,
+                   alpha=0.55, zorder=2)
+    ax2.text(6.1, 6000, "dotted = dsk sk3 ref", fontsize=7.5,
+             color="#455a64")
+    ax2.set_xlabel("--waves W", fontsize=10)
+    ax2.set_xticks(range(1, 9))
+    ax2.set_ylabel("GFLOPS", fontsize=10)
+    ax2.legend(fontsize=8, loc="upper right")
+    ax2.grid(axis="y", alpha=0.3, zorder=0)
+    ax2.set_title("(b) W sweep: monotone decline from W=1 everywhere\n"
+                  "-> auto W := 1 (formula recalibrated, T006 input)",
+                  fontsize=9.5)
+
+    # ---- (c) 1024^3 时间预算瀑布（μs，越低越好） ----
+    FLOP = 2 * 1024 ** 3 / 1e9                       # GFLOP per pass
+    gf2us = lambda g: FLOP / g * 1e3
+    items = [
+        ("cuBLAS\n(this sess,\nboost-inflated)", gf2us(med[(1024, 1024, 1024, "cublas")]), "#c62828"),
+        ("deep", gf2us(med[(1024, 1024, 1024, "deep")]), "#455a64"),
+        ("streamk W=1\n(fused)", gf2us(med[(1024, 1024, 1024, "streamk_w1")]), "#2e7d32"),
+        ("streamk W=2\n(fused)", gf2us(med[(1024, 1024, 1024, "streamk_w2")]), "#81c784"),
+    ]
+    # dsk main+reduce 画成堆叠双段
+    ax3.bar(["deep"], [297.0], 0.62, color="white", alpha=0)  # 占位
+    ax3.bar(["dsk sk3\n(297+41)"], [297.0], 0.62, color="#1976d2",
+            label="dsk main", zorder=3)
+    ax3.bar(["dsk sk3\n(297+41)"], [41.0], 0.62, bottom=[297.0],
+            color="#64b5f6", label="dsk reduce", zorder=3)
+    for name, us, col in items:
+        ax3.bar([name], [us], 0.62, color=col, zorder=3)
+        ax3.text(name, us + 6, f"{us:.0f}", ha="center", fontsize=8,
+                 color=col)
+    tot = 297.0 + 41.0
+    ax3.text("dsk sk3\n(297+41)", tot + 6, f"{tot:.0f}", ha="center",
+             fontsize=8, color="#1976d2")
+    ax3.axhline(255.9, color="#c62828", ls="--", lw=1.3, zorder=4)
+    ax3.text(0.02, 250, "canonical G1 gate = 75% @ 255.9μs",
+             fontsize=7.5, color="#c62828", transform=ax3.get_yaxis_transform())
+    ax3.set_ylabel("time (μs)", fontsize=10)
+    ax3.set_ylim(0, 560)
+    ax3.legend(fontsize=7.5, loc="upper left")
+    ax3.grid(axis="y", alpha=0.3, zorder=0)
+    ax3.tick_params(axis="x", labelsize=7.6)
+    ax3.set_title("(c) 1024$^3$ budget: fused streamk 393μs vs dsk 338μs\n"
+                  "-> G1 flip FAILS (miss 1.05μs, honest negative)",
+                  fontsize=9.5)
+
+    fig.suptitle("AR011 T005 Stream-K W sweep (git=8104293 build, "
+                 "streamk_ar011.csv): W=1 optimal, G6@2048$^3$ marginal pass",
+                 fontsize=13, fontweight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.savefig(os.path.join(OUT_DIR, "fig32_streamk_sweep.png"))
+    plt.close(fig)
+
+
+fig32_streamk_sweep()
+
 fig_gates_v4()
 fig_ladder_v4()
 
