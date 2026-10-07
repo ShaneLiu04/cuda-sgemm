@@ -90,6 +90,15 @@ struct CliOptions {
                                      //  改变逐元素 k 加法序 → rel≤1e-4 + 确定性双跑门；
                                      //  仅 DBUF=1 族实例化（AR011 详设 §4.2.5/T004））
     int rounds = 1;                 // 多轮统计轮数（AR007；1=单轮，与历史语义一致）
+    int swz = 0;                    // deep/dsk/streamk 的 L2 块序 swizzle 消融旋钮（0/1；
+                                     //  默认 0 = 线性光栅现状；1 = 分组列序重排，AR012
+                                     //  design §4.2.1；G7 判定 ≥+1% 才进 auto）
+    int swzg = 8;                   // --swz 的组宽 G（n-tiles/组，4/8/16；默认 8；仅
+                                     //  --swz 1 时生效，AR012 design §4.2.1）
+    int skred = 0;                  // streamk 的 cover 归约路径旋钮（0/1；默认 0 = 融合
+                                     //  票据归并（F2 赢家链）；1 = cover-only 独立归约
+                                     //  kernel（AR012 design §4.2.2，链≡F2 → bitwise；
+                                     //  G1@1024³ 主攻）
     bool list_kernels = false;
     bool help = false;
 };
@@ -131,6 +140,14 @@ inline void print_usage(const char* prog) {
         "                       AR011 FR3b; warp w processes kk in order (s+w)&7 -- changes\n"
         "                       per-element k sum order -> rel<=1e-4 + determinism gates;\n"
         "                       instantiated for --dbuf 1 only)\n"
+        "  --swz <0|1>          L2 block-order swizzle for deep/dsk/streamk (default 0 =\n"
+        "                       linear raster; 1 = grouped column-major, AR012 design 4.2.1;\n"
+        "                       G7 gate >=+1%% before entering auto)\n"
+        "  --swzg <4|8|16>      group width G in n-tiles for --swz 1 (default 8; effective\n"
+        "                       with --swz 1 only)\n"
+        "  --skred <0|1>        cover-reduction path for streamk (default 0 = fused ticket\n"
+        "                       merge; 1 = separate cover-only reduce kernel, chain identical\n"
+        "                       -> bitwise; AR012 G1@1024^3 main lever)\n"
         "  --verbose            print dispatch/fallback details\n"
         "  --list-kernels       list registered kernels\n"
         "  --help               this message\n",
@@ -168,6 +185,9 @@ inline CliOptions parse_cli(int argc, char** argv) {
         else if (a == "--hit")          opt.hit = std::atof(next(a.c_str()));
         else if (a == "--bpf")          opt.bpf = std::atoi(next(a.c_str()));
         else if (a == "--phase")        opt.phase = std::atoi(next(a.c_str()));
+        else if (a == "--swz")          opt.swz = std::atoi(next(a.c_str()));
+        else if (a == "--swzg")         opt.swzg = std::atoi(next(a.c_str()));
+        else if (a == "--skred")        opt.skred = std::atoi(next(a.c_str()));
         else if (a == "--check")        opt.check = true;
         else if (a == "--csv")          opt.csv = true;
         else if (a == "--verbose")      opt.verbose = true;
@@ -233,6 +253,18 @@ inline CliOptions parse_cli(int argc, char** argv) {
     }
     if (opt.phase != 0 && opt.phase != 1) {
         std::fprintf(stderr, "[CLI_ERROR] --phase must be 0 or 1 (got %d)\n", opt.phase);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.swz != 0 && opt.swz != 1) {
+        std::fprintf(stderr, "[CLI_ERROR] --swz must be 0 or 1 (got %d)\n", opt.swz);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.swzg != 4 && opt.swzg != 8 && opt.swzg != 16) {
+        std::fprintf(stderr, "[CLI_ERROR] --swzg must be 4, 8 or 16 (got %d)\n", opt.swzg);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.skred != 0 && opt.skred != 1) {
+        std::fprintf(stderr, "[CLI_ERROR] --skred must be 0 or 1 (got %d)\n", opt.skred);
         std::exit(EXIT_FAILURE);
     }
     return opt;

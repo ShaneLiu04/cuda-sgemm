@@ -323,8 +323,49 @@ int main(int argc, char** argv) {
                     ok ? "REL-PASS" : "REL-FAIL", rel);
     }
 
+    // ---- AR012 旋钮接线探针 + 旋钮中立锚（design §6；T001 Red：marker 快照
+    //      验证接线、kernel 行为未变 → on/off 逐位一致；T003/T004/T005 Green
+    //      接入后 swizzle remap 只改 tile 归属、SK_RED 归约链≡F2 → 锚恒成立）----
+    std::printf("------------------------------------------------------------------\n");
+    std::printf(" AR012 knob wiring probes (swz / skred)\n");
+    std::printf("------------------------------------------------------------------\n");
+    {   // 探针 1：--swz——g_swz=1 经 deep wrapper 快照到 g_launch_swz（Red 阶段
+        //  device remap 未接入，行为仍线性光栅；快照验证旋钮到 launch 的链路）
+        const int swz = sgemm::g_swz;
+        std::vector<float> r, g;
+        run_dump(sgemm::K_DEEP, 1536, 1024, 512, r);      // swz=0 基线
+        sgemm::g_swz = 1;
+        run_dump(sgemm::K_DEEP, 1536, 1024, 512, g);      // swz=1（Red：kernel 忽略）
+        const bool wired = (sgemm::g_launch_swz == 1);
+        sgemm::g_swz = swz;
+        ++total;
+        if (wired) ++passed; else all_ok = false;
+        std::printf("  %-58s  %s (g_launch_swz=%d)\n",
+                    "probe: --swz 1 -> deep wrapper snapshot", wired ? "PASS" : "FAIL",
+                    sgemm::g_launch_swz);
+        anchor_case("deep(swz=1) == deep(swz=0) remap-neutral @1536x1024x512",
+                    g, r);
+    }
+    {   // 探针 2：--skred——1024^3（TOT=4096 不旁路，cover>1 票据归并路径即
+        //  T005 主战场）；独立归约链 0+P[b_lo..b_hi] 升序 ≡ 融合 F2 → 恒逐位
+        const int skred = sgemm::g_skred;
+        std::vector<float> r, g;
+        run_dump(sgemm::K_STREAMK, 1024, 1024, 1024, r);  // skred=0 融合归并基线
+        sgemm::g_skred = 1;
+        run_dump(sgemm::K_STREAMK, 1024, 1024, 1024, g);  // skred=1（Red：kernel 忽略）
+        const bool wired = (sgemm::g_launch_skred == 1);
+        sgemm::g_skred = skred;
+        ++total;
+        if (wired) ++passed; else all_ok = false;
+        std::printf("  %-58s  %s (g_launch_skred=%d)\n",
+                    "probe: --skred 1 -> streamk wrapper snapshot",
+                    wired ? "PASS" : "FAIL", sgemm::g_launch_skred);
+        anchor_case("streamk(skred=1) == streamk(skred=0) chain-identical @1024^3",
+                    g, r);
+    }
+
     std::printf("==================================================================\n");
-    std::printf(" SUMMARY: %d / %d PASS (incl. 7 bitwise/rel anchors)  ->  %s\n",
+    std::printf(" SUMMARY: %d / %d PASS (incl. 9 bitwise/rel anchors)  ->  %s\n",
                 passed, total, all_ok ? "ALL PASS" : "FAILED");
     std::printf("==================================================================\n");
     return all_ok ? 0 : EXIT_FAILURE;

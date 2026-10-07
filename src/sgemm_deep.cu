@@ -53,6 +53,10 @@ int g_deep_dbuf = 1;   // --dbuf：1 = 双缓冲单同步（默认，AR010 T004 
                        // +3~14% 数据裁定），0 = 单缓冲双同步
 int g_deep_bpf = 0;    // --bpf：AR011 FR3a，B(kk+1) 寄存器预取（仅 DBUF=1 族）
 int g_deep_phase = 0;  // --phase：AR011 FR3b，kk 轮转错相（仅 DBUF=1 族）
+int g_swz = 0;         // --swz：AR012 FR2，L2 块序 swizzle（0 = 线性光栅现状；
+                       // 1 = 分组列序 remap，T003 Green 接入 device 侧）
+int g_swzg = 8;        // --swzg：组宽 G（n-tiles/组；4/8/16）
+int g_launch_swz = -1; // 接线探针（T001）：wrapper 每次 launch 快照 g_swz
 }
 
 namespace {
@@ -284,6 +288,7 @@ void deep_tile_grid(const float* A, const float* B, float* Out_base,
                     int grid_n, int grid_m, int grid_z) {
     const dim3 grid(grid_n, grid_m, grid_z);
     const dim3 block(16, 16, 1);
+    sgemm::g_launch_swz = sgemm::g_swz;   // T001 接线探针（device remap 由 T003 接入）
     const int last_direct = (Out_last != Out_base) ? 1 : 0;
     // AR011 T004：BPF/PHASE 消融实例矩阵（受控，design §4.2.5）——仅 DBUF=1
     // 族 × (bpf,phase)∈{00,10,01,11}（both-on 支撑 {on,off}² 因果分解）；

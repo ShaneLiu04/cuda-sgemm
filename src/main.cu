@@ -245,7 +245,32 @@ int main(int argc, char** argv) {
                           "[note] --hit is effective with --persist 1 only (ignored)\n");
         }
     }
-    // 环境信息头（AGENTS.md §5：每次输出附版本信息）
+    // AR012 T001：L2 块序 swizzle 双旋钮（--swz/--swzg，deep/dsk/streamk 有效）。
+    // 绑定先行纪律（沿 AR011 --waves T001 先例）：T001 Red 阶段 kernel 侧 remap
+    // 未接入，旋钮值由 wrapper 快照到 g_launch_swz 探针、device 行为仍线性光栅；
+    // T003（deep/dsk）/T004（streamk）Green 接入后生效
+    if (opt.kernel == "deep" || opt.kernel == "dsk" || opt.kernel == "streamk") {
+        sgemm::g_swz  = opt.swz;
+        sgemm::g_swzg = opt.swzg;
+    } else if (opt.swz != 0 || opt.swzg != 8) {
+        std::fprintf(stderr,
+                      "[note] --swz/--swzg apply to kernel 'deep'/'dsk'/'streamk' "
+                      "only (ignored for '%s')\n",
+                      opt.kernel.c_str());
+    }
+    if (opt.swz == 0 && opt.swzg != 8) {
+        std::fprintf(stderr,
+                      "[note] --swzg is effective with --swz 1 only (ignored)\n");
+    }
+    // AR012 T001：cover 归约路径旋钮（--skred，streamk 有效）。同上绑定先行：
+    // T005 Green 接入独立归约 kernel 前，g_skred 仅被快照、融合票据路径不变
+    if (opt.kernel == "streamk") {
+        sgemm::g_skred = opt.skred;
+    } else if (opt.skred != 0) {
+        std::fprintf(stderr,
+                      "[note] --skred applies to kernel 'streamk' only (ignored for '%s')\n",
+                      opt.kernel.c_str());
+    }
     int drv = 0, rt = 0;
     cudaDriverGetVersion(&drv);
     cudaRuntimeGetVersion(&rt);

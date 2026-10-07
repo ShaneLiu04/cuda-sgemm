@@ -72,6 +72,10 @@ int g_streamk_waves = 0;   // --waves：0 = auto（T005 校准 = 恒 W=1，
 int g_l2_persist = 0;      // --persist：1 = 计时区内 accessPolicyWindow 钉 C
                            // + 计时区后强制复位（先于 cuBLAS 锚定，协议纪律）
 double g_l2_hit = 0.8;     // --hit：hitRatio（0.5..1.0）
+int g_skred = 0;           // --skred：AR012 FR3，cover 归约路径（0 = 融合票据
+                           // 归并现状；1 = cover-only 独立归约 kernel，T005
+                           // Green 接入；链≡F2 → bitwise）
+int g_launch_skred = -1;   // 接线探针（T001）：wrapper 每次 launch 快照 g_skred
 }
 
 namespace {
@@ -434,6 +438,7 @@ void sgemm_streamk(const float* A, const float* B, float* C,
 
     const dim3 grid(B_blocks);
     const dim3 block(16, 16, 1);
+    sgemm::g_launch_skred = sgemm::g_skred;   // T001 接线探针（独立 kernel 由 T005 接入）
     if (sgemm::g_deep_dbuf) {
         sgemm_streamk_kernel<1><<<grid, block>>>(
             A, B, C, g_ws.p, g_ws.tick, M, N, K, U, nt, tiles, grid_n, SLOTS);

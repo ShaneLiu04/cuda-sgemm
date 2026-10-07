@@ -141,10 +141,21 @@ extern double g_l2_hit;          // --hit，accessPolicyWindow hitRatio，默认
 extern int g_deep_bpf;           // --bpf，deep/dsk B 片段 kk+1 寄存器预取消融，
                                     //   默认 0（AR011 FR3a；链序不变 → bitwise 门；
                                     //   仅 DBUF=1 族实例化）
-extern int g_deep_phase;         // --phase，deep/dsk kk 轮转错相消融，默认 0
-                                    //   （AR011 FR3b；warp w 序 kk'=(s+w)&7；改变
-                                    //   k 加法序 → rel≤1e-4 + 确定性双跑门；
-                                    //   仅 DBUF=1 族实例化）
+extern int g_deep_phase;           // --phase，deep/dsk kk 轮转错相消融，默认 0
+                                     //   （AR011 FR3b；warp w 序 kk'=(s+w)&7；改变
+                                     //   k 加法序 → rel≤1e-4 + 确定性双跑门；
+                                     //   仅 DBUF=1 族实例化）
+extern int g_swz;                  // --swz，deep/dsk/streamk 的 L2 块序 swizzle，默认 0
+                                     //   （AR012 FR2；0 = 线性光栅，1 = 分组列序
+                                     //   design §4.2.1；G7 判定 ≥+1% 才进 auto）
+extern int g_swzg;                 // --swzg，组宽 G（4/8/16，默认 8；仅 --swz 1 生效）
+extern int g_skred;                // --skred，streamk cover 归约路径，默认 0
+                                     //   （AR012 FR3；0 = 融合票据归并，1 = cover-only
+                                     //   独立归约 kernel design §4.2.2；链≡F2 → bitwise）
+// ---- 测试接线探针（AR012 T001；wrapper 写、suite 读，防"旋钮已注册但 kernel
+//      静默忽略"——深/dsk/streamk wrapper 每次 launch 记录实际生效的旋钮值）----
+extern int g_launch_swz;           // 最近一次 deep/dsk launch 的 g_swz 快照（-1 = 未启动）
+extern int g_launch_skred;         // 最近一次 streamk launch 的 g_skred 快照（-1 = 未启动）
 extern bool g_verbose;           // 打印回退路径细节（测试断言路径覆盖用）
 }
 
