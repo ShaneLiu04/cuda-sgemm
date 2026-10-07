@@ -2834,6 +2834,100 @@ def fig29_streamk_structure():
 
 fig29_streamk_structure()
 
+
+# ---------------- AR011 fig31: FR3 latency-cover ablation (negative) ----------------
+# 数据/证据：results/lat_cover_ar011.csv（2026-10-07 本会话实测，git=9eaf90a，
+# 3 轮中位，dsk --sk 3 载体，47C 冷却 + cublas 首锚协议）+ build.log T004 段
+# ptxas（10 实例 0 spill；BPF +2r / PHASE -13r）。
+# 结论（负结果）：BPF 噪声内（±0.4%）；PHASE 一致负效应（-0.8%@1024^3 /
+# -2.1%@2048^3）；组合 ≈ PHASE 单独 → 两者均不进 auto v4 候选池。
+def fig31_lat_cover():
+    import statistics as st
+    csv_path = os.path.join(OUT_DIR, "..", "lat_cover_ar011.csv")
+    if not os.path.exists(csv_path):
+        print("fig31 skipped (lat_cover_ar011.csv missing)")
+        return
+    rows = [r for r in csv.DictReader(
+        filter(lambda l: not l.startswith("#"), open(csv_path)))
+        if r.get("kernel")]
+    med = {}
+    for r in rows:
+        key = (int(r["m"]), r["kernel"])
+        med.setdefault(key, []).append(float(r["gflops"]))
+    for k in med:
+        med[k] = st.median(med[k])
+
+    cfgs = [("dsk_base", "base (00)", "#37474f"),
+            ("dsk_bpf", "BPF (10)", "#1976d2"),
+            ("dsk_phase", "PHASE (01)", "#e64a19"),
+            ("dsk_bpf_phase", "both (11)", "#8e24aa")]
+    sizes = [(1024, 1024), (2048, 2048)]
+
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(15.2, 5.6),
+        gridspec_kw={"width_ratios": [2.5, 1.0]})
+
+    # ---- (a) GFLOPS：4 配置 × 2 尺寸 + cublas 参考线 ----
+    x = np.arange(len(sizes))
+    bw = 0.19
+    for i, (cfg, lab, col) in enumerate(cfgs):
+        vals = [med[(s, cfg)] for s, _ in [(a, b) for a, b in sizes]]
+        offs = (i - 1.5) * bw
+        bars = ax1.bar(x + offs, vals, bw * 0.92, color=col, label=lab, zorder=3)
+        base = [med[(s, "dsk_base")] for s, _ in [(a, b) for a, b in sizes]]
+        for b_, v, bs in zip(bars, vals, base):
+            ax1.text(b_.get_x() + b_.get_width() / 2, v + 18,
+                     f"{v:.0f}\n({(v / bs - 1) * 100:+.2f}%)",
+                     ha="center", va="bottom", fontsize=7.2, color=col)
+    for xi, (s, _) in enumerate(sizes):
+        cv = med[(s, "cublas")]
+        ax1.hlines(cv, xi - 0.48, xi + 0.48, color="#c62828", lw=1.6,
+                   ls="--", zorder=4)
+        ax1.text(xi + 0.48, cv + 40, f"cuBLAS {cv:.0f}", ha="right",
+                 fontsize=7.6, color="#c62828")
+    ax1.set_xticks(x)
+    ax1.set_xticklabels([f"{s}$^3$" for s, _ in sizes], fontsize=10)
+    ax1.set_ylabel("GFLOPS", fontsize=10)
+    lo = min(med[k] for k in med if med and k[1] != "cublas") * 0.985
+    ax1.set_ylim(lo, None)
+    ax1.legend(fontsize=8.5, ncol=4, loc="lower left", framealpha=0.9)
+    ax1.grid(axis="y", alpha=0.3, zorder=0)
+    ax1.set_title("(a) dsk --sk 3: 3-round medians, vs-base % in parens\n"
+                  "BPF within noise; PHASE consistently negative",
+                  fontsize=9.5)
+
+    # ---- (b) ptxas 寄存器 + 机理注记 ----
+    names = ["base", "BPF", "PHASE", "both"]
+    regs = [243, 245, 230, 230]
+    cols = ["#37474f", "#1976d2", "#e64a19", "#8e24aa"]
+    bars = ax2.bar(names, regs, 0.6, color=cols, zorder=3)
+    for b_, v in zip(bars, regs):
+        ax2.text(b_.get_x() + b_.get_width() / 2, v + 0.6, str(v),
+                 ha="center", fontsize=9)
+    ax2.set_ylim(220, 252)
+    ax2.set_ylabel("registers / instance", fontsize=10)
+    ax2.grid(axis="y", alpha=0.3, zorder=0)
+    ax2.set_title("(b) ptxas regs (all 0 spill;\n247/243 active instances unchanged)",
+                  fontsize=9.5)
+    ax2.text(0.5, 0.04,
+             "mechanism: all warps read the same B columns\n"
+             "at the same kk (tx pattern identical) -> smem\n"
+             "multicast-friendly; PHASE de-synchronizes kk\n"
+             "per warp and forfeits it. BPF adds nothing:\n"
+             "dbuf double-buffering already covers the load.",
+             transform=ax2.transAxes, ha="center", va="bottom",
+             fontsize=7.6, color="#37474f",
+             bbox=dict(fc="#eceff1", ec="#90a4ae", pad=4.5))
+
+    fig.suptitle("AR011 T004 FR3 latency-cover ablation "
+                 "(git=9eaf90a, lat_cover_ar011.csv): negative result",
+                 fontsize=13, fontweight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.savefig(os.path.join(OUT_DIR, "fig31_lat_cover.png"))
+    plt.close(fig)
+
+fig31_lat_cover()
+
 fig_gates_v4()
 fig_ladder_v4()
 

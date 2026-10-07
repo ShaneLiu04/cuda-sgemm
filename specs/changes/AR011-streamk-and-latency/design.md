@@ -272,6 +272,10 @@ void l2_pin_reset();                                         // window{Normal} +
 - **实例矩阵受控**（§4.4 表）：BPF 仅实例化 DBUF=1 族；PHASE 仅实例化 <DBUF=1,
   LAST_DIRECT∈{0,1}, STORE_MODE=0> 消融点——避免 2×2×2×2×2 组合爆炸；
   每实例 ptxas 逐条审计（regs/spill/smem 三列入 build.log）。
+  **T004 修订（2026-10-07）**：原表仅单因子实例（BPF 单开/PHASE 单开），实测
+  裁定需补 `<1,ld,1,1>` 组合实例——{on,off}² 因果分解要求 both-on 参照
+  （组合预取目标按逻辑步 (s+1+wid)&7 修正，见 §4.2.5 FR3a 回绕注）。
+  实测结果（lat_cover_ar011.csv）：双因子皆负，组合≈PHASE 单独。
 - **既有实例回归门**：新增模板参数后，旧 4 实例（deep/dsk 现役）必须
   ①bitwise 专项全绿（deep==swpipe、dsk==swsk 等 21 项锚链）②1024³ deep/dsk 性能
   落历史噪声带（±1%）——防 ptxas 重排病灶复发（AR010 T007 教训）。
