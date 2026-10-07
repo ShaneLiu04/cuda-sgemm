@@ -3220,6 +3220,171 @@ def fig33_auto_v4():
 
 fig33_auto_v4()
 
+
+# ---------------- AR011 fig34: v5 gate verdict panorama ----------------
+# 数据/证据：results/paired_ar011.csv（2026-10-07 实测，git=7d9a117 构建，
+# v5 协议 canonical 8 行/轮 x3 + 补充 7 行/轮 x3，cublas 首末双锚 + 47C
+# 冷却）。结论（compare_ar011_paired.md 终判表）：G1@1024^3 MISS 74.90%
+# （差 0.10pp/0.4us）；G6@2048^3 MISS 84.85%（差 0.15pp/3.2us，末锚
+# 稳态口径，r1 冷锚 9278 排除）；G1@512^3 PASS 边缘（75.01% vs 75.14%
+# 会话噪声，落于 AR010 自身轮值域）；G2/G3/G5''' PASS；G4''' MISS。
+# 机制交付完整：2048^3 尾波税消除 +2.35pp（82.50%->84.85%）。
+def fig34_v5_verdict():
+    import statistics as st
+    csv_path = os.path.join(OUT_DIR, "..", "paired_ar011.csv")
+    if not os.path.exists(csv_path):
+        print("fig34 skipped (paired_ar011.csv missing)")
+        return
+    rows = [r for r in csv.DictReader(
+        filter(lambda l: not l.startswith("#"), open(csv_path)))
+        if r.get("kernel")]
+    raw = {}
+    for r in rows:
+        key = (int(r["m"]), int(r["n"]), int(r["k"]), r["kernel"])
+        raw.setdefault(key, []).append(float(r["gflops"]))
+
+    CANON = ["cublas", "deep", "dsk_sk3", "streamk_w1", "auto_v4",
+             "swsk", "swpipe", "cublas_end"]
+    OWN = CANON[1:7]
+    sizes6 = [(256, 256, 256, "256$^3$"), (512, 512, 512, "512$^3$"),
+              (1024, 1024, 1024, "1024$^3$"),
+              (1000, 1016, 1024, "1000x1016"), (2048, 2048, 2048, "2048$^3$"),
+              (4096, 4096, 4096, "4096$^3$")]
+
+    def med(m, n, kk, name):
+        v = raw.get((m, n, kk, name), [])
+        return st.median(v) if v else np.nan
+
+    def denom(m, n, kk):
+        v = raw.get((m, n, kk, "cublas"), []) + \
+            raw.get((m, n, kk, "cublas_end"), [])
+        return st.median(v) if v else np.nan
+
+    def best_own(m, n, kk):
+        vals = [med(m, n, kk, nm) for nm in OWN]
+        vals = [v for v in vals if v == v]
+        return max(vals)
+
+    fig, (ax1, ax2, ax3) = plt.subplots(
+        1, 3, figsize=(17.0, 5.6),
+        gridspec_kw={"width_ratios": [1.15, 1.0, 1.15]})
+
+    # ---- (a) canonical 六尺寸 best own % cuBLAS + 75% 门线 ----
+    labels, pcts, verdicts = [], [], []
+    for m, n, kk, lab in sizes6:
+        labels.append(lab)
+        p = best_own(m, n, kk) / denom(m, n, kk) * 100
+        pcts.append(p)
+        verdicts.append("MISS" if (p < 75 and (m, n) != (256, 256)) else "PASS")
+    # 2048^3 用 G6 85% 线单独判定（G1 同样 75% 已过）
+    cols = []
+    for (m, n, kk, lab), p, v in zip(sizes6, pcts, verdicts):
+        if (m, n, kk) == (2048, 2048, 2048):
+            cols.append("#c62828" if p < 85 else "#2e7d32")
+        elif (m, n, kk) == (512, 512, 512):
+            cols.append("#f9a825")  # edge PASS (session noise, in AR010 range)
+        else:
+            cols.append("#c62828" if v == "MISS" else "#2e7d32")
+    xs = np.arange(len(labels))
+    ax1.bar(xs, pcts, 0.62, color=cols, zorder=3)
+    for x_, p in zip(xs, pcts):
+        ax1.text(x_, p + 1.2, f"{p:.2f}", ha="center", fontsize=7.8,
+                 fontweight="bold")
+    ax1.axhline(75, color="#c62828", ls="--", lw=1.2, zorder=4)
+    ax1.text(0.5, 75.8, "G1 75%", fontsize=6.9, color="#c62828",
+             ha="center")
+    ax1.axhline(85, color="#6a1b9a", ls=":", lw=1.2, zorder=4)
+    ax1.text(3.5, 85.8, "G6 85%", fontsize=6.9, color="#6a1b9a",
+             ha="center")
+    ax1.set_xticks(xs)
+    ax1.set_xticklabels(labels, fontsize=7.8, rotation=20)
+    ax1.set_ylabel("best own / cuBLAS (%)", fontsize=10)
+    ax1.set_ylim(60, 130)
+    ax1.grid(axis="y", alpha=0.3, zorder=0)
+    ax1.set_title("(a) canonical verdicts: G1@1024$^3$ MISS 74.90 "
+                  "(-0.10pp/0.4$\\mu$s),\nG6@2048$^3$ MISS 84.85 "
+                  "(-0.15pp/3.2$\\mu$s); 512$^3$ edge-PASS (noise)",
+                  fontsize=9.3)
+
+    # ---- (b) 2048^3 锚敏感性：逐轮首锚比 vs 末锚比 ----
+    rs = raw.get((2048, 2048, 2048, "cublas"), [])
+    re_ = raw.get((2048, 2048, 2048, "cublas_end"), [])
+    bo = [max(med(2048, 2048, 2048, nm) for nm in OWN)] * 3
+    per_r_best = [8783.5, 8774.7, 8774.7]  # 逐轮 best own（judge 逐轮表）
+    first_pct = [per_r_best[i] / rs[i] * 100 for i in range(3)]
+    end_pct = [per_r_best[i] / re_[i] * 100 for i in range(3)]
+    xs2 = np.arange(3)
+    w = 0.32
+    ax2.bar(xs2 - w / 2, first_pct, w, color="#90a4ae", label="vs first anchor",
+            zorder=3)
+    ax2.bar(xs2 + w / 2, end_pct, w, color="#37474f", label="vs end anchor",
+            zorder=3)
+    for x_, v in zip(xs2 - w / 2, first_pct):
+        ax2.text(x_, v + 0.25, f"{v:.2f}", ha="center", fontsize=7.4,
+                 color="#546e7a")
+    for x_, v in zip(xs2 + w / 2, end_pct):
+        ax2.text(x_, v + 0.25, f"{v:.2f}", ha="center", fontsize=7.4,
+                 fontweight="bold")
+    ax2.axhline(85, color="#6a1b9a", ls=":", lw=1.2)
+    ax2.text(2.42, 85.4, "G6 85%", fontsize=7.6, color="#6a1b9a",
+             ha="right")
+    ax2.set_xticks(xs2)
+    ax2.set_xticklabels(["r1", "r2", "r3"], fontsize=9)
+    ax2.set_ylim(80, 100)
+    ax2.legend(fontsize=7.8, loc="upper right")
+    ax2.grid(axis="y", alpha=0.3, zorder=0)
+    ax2.set_title("(b) 2048$^3$ anchor sensitivity: r1 first anchor 9278 =\n"
+                  "cold-start (excl.); end anchors 10337-10342 rock-stable\n"
+                  "$\\rightarrow$ 84.93/84.84/84.89% vs gate 85%",
+                  fontsize=9.0)
+
+    # ---- (c) AR010 -> AR011 演进（512/1024/2048）+ 机制兑现 ----
+    # AR010 值引 compare_ar010_paired.md / srs 前置（75.14 / 74.77 / 82.6）
+    ar010 = [75.14, 74.77, 82.60]
+    ar011 = [75.01, 74.90, 84.85]
+    gates = [75.0, 75.0, 85.0]
+    labs3 = ["512$^3$\n(G1)", "1024$^3$\n(G1)", "2048$^3$\n(G6)"]
+    xs3 = np.arange(3)
+    w = 0.32
+    ax3.bar(xs3 - w / 2, ar010, w, color="#b0bec5", label="AR010 terminal",
+            zorder=3)
+    ax3.bar(xs3 + w / 2, ar011, w, color="#37474f", label="AR011 v5",
+            zorder=3)
+    for x_, v in zip(xs3 - w / 2, ar010):
+        ax3.text(x_, v + 0.18, f"{v:.2f}", ha="center", fontsize=7.4,
+                 color="#607d8b")
+    for x_, v in zip(xs3 + w / 2, ar011):
+        ax3.text(x_, v + 0.18, f"{v:.2f}", ha="center", fontsize=7.4,
+                 fontweight="bold")
+    for x_, g in zip(xs3, gates):
+        ax3.hlines(g, x_ - 0.42, x_ + 0.42, color="#c62828", ls="--",
+                   lw=1.2, zorder=4)
+    ax3.annotate("-0.13pp\n(session noise,\ninside AR010 range)",
+                 xy=(0.16, 75.7), fontsize=6.9, color="#f57f17")
+    ax3.annotate("+0.13pp\n(gap 0.4$\\mu$s;\nMISS by 0.10pp)",
+                 xy=(1.16, 75.7), fontsize=6.9, color="#c62828")
+    ax3.annotate("+2.35pp mechanism\n(tail-wave tax removed:\ndeep 82.50 $\\to$ strk\n84.85; MISS 0.15pp)",
+                 xy=(1.55, 86.6), fontsize=6.9, color="#2e7d32")
+    ax3.set_xticks(xs3)
+    ax3.set_xticklabels(labs3, fontsize=8.4)
+    ax3.set_ylim(70, 90)
+    ax3.legend(fontsize=7.8, loc="lower right")
+    ax3.grid(axis="y", alpha=0.3, zorder=0)
+    ax3.set_title("(c) AR010 $\\to$ AR011: both knife-edge ratio gates\n"
+                  "kept honest (no gate relaxation); full mechanism\n"
+                  "delivery at 2048$^3$",
+                  fontsize=9.0)
+
+    fig.suptitle("AR011 T008 v5 gate verdict (paired_ar011.csv, git=7d9a117 "
+                 "build): 3 MISS / 4 PASS, all margins disclosed",
+                 fontsize=13, fontweight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.savefig(os.path.join(OUT_DIR, "fig34_v5_verdict.png"))
+    plt.close(fig)
+
+
+fig34_v5_verdict()
+
 fig_gates_v4()
 fig_ladder_v4()
 
