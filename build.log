@@ -1,43 +1,75 @@
 Change Dir: 'C:/Users/l30086046/Documents/【学习项目】cuda-sgemm/build'
 
-Run Clean Command: C:/Users/l30086046/csg-tools/venv/Scripts/ninja.exe -v clean
-[1/1] C:\Users\l30086046\csg-tools\venv\Scripts\ninja.exe  -t clean 
-Cleaning... 0 files.
-
 Run Build Command(s): C:/Users/l30086046/csg-tools/venv/Scripts/ninja.exe -v
-[1/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_wide_sk.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_wide_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_wide_sk.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_wide_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
-ptxas info    : 0 bytes gmem
-sgemm_wide_sk.cu
-tmpxft_00003d5c_00000000-10_sgemm_wide_sk.cudafe1.cpp
-[2/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_naive.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_naive.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_naive.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_naive.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+[1/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_naive.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_naive.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_naive.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_naive.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN47_GLOBAL__N__e1d4fbe9_14_sgemm_naive_cu_a70282d218sgemm_naive_kernelEPKfS1_Pfiii' for 'sm_75'
 ptxas info    : Function properties for _ZN47_GLOBAL__N__e1d4fbe9_14_sgemm_naive_cu_a70282d218sgemm_naive_kernelEPKfS1_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 50 registers, 388 bytes cmem[0]
 sgemm_naive.cu
-tmpxft_00002a9c_00000000-10_sgemm_naive.cudafe1.cpp
-[3/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_vec4.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_vec4.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_vec4.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_vec4.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+tmpxft_000056d8_00000000-10_sgemm_naive.cudafe1.cpp
+[2/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_wide_sk.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_wide_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_wide_sk.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_wide_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
-ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__acc87f88_13_sgemm_vec4_cu_2ef60d3b17sgemm_vec4_kernelEPKfS1_Pfiii' for 'sm_75'
-ptxas info    : Function properties for _ZN46_GLOBAL__N__acc87f88_13_sgemm_vec4_cu_2ef60d3b17sgemm_vec4_kernelEPKfS1_Pfiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 128 registers, 8320 bytes smem, 388 bytes cmem[0]
-sgemm_vec4.cu
-tmpxft_00005abc_00000000-10_sgemm_vec4.cudafe1.cpp
-[4/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_coalesced.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_coalesced.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_coalesced.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_coalesced.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+sgemm_wide_sk.cu
+tmpxft_000036d8_00000000-10_sgemm_wide_sk.cudafe1.cpp
+[3/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_coalesced.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_coalesced.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_coalesced.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_coalesced.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN51_GLOBAL__N__2dd19405_18_sgemm_coalesced_cu_0141b79922sgemm_coalesced_kernelEPKfS1_Pfiii' for 'sm_75'
 ptxas info    : Function properties for _ZN51_GLOBAL__N__2dd19405_18_sgemm_coalesced_cu_0141b79922sgemm_coalesced_kernelEPKfS1_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 50 registers, 388 bytes cmem[0]
 sgemm_coalesced.cu
-tmpxft_0000248c_00000000-10_sgemm_coalesced.cudafe1.cpp
-[5/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_auto.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_auto.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_auto.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_auto.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+tmpxft_00004d90_00000000-10_sgemm_coalesced.cudafe1.cpp
+[4/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_swpipe.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN48_GLOBAL__N__4c087c4a_15_sgemm_swpipe_cu_92d666bc19sgemm_swpipe_kernelEPKfS1_Pfiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN48_GLOBAL__N__4c087c4a_15_sgemm_swpipe_cu_92d666bc19sgemm_swpipe_kernelEPKfS1_Pfiiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 128 registers, 8320 bytes smem, 396 bytes cmem[0]
+sgemm_swpipe.cu
+tmpxft_00001fd0_00000000-10_sgemm_swpipe.cudafe1.cpp
+[5/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_deep_sk.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_deep_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_deep_sk.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_deep_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+ptxas info    : 0 bytes gmem
+sgemm_deep_sk.cu
+tmpxft_000055ec_00000000-10_sgemm_deep_sk.cudafe1.cpp
+[6/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_vec4.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_vec4.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_vec4.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_vec4.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__acc87f88_13_sgemm_vec4_cu_2ef60d3b17sgemm_vec4_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__acc87f88_13_sgemm_vec4_cu_2ef60d3b17sgemm_vec4_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 128 registers, 8320 bytes smem, 388 bytes cmem[0]
+sgemm_vec4.cu
+tmpxft_00004f98_00000000-10_sgemm_vec4.cudafe1.cpp
+[7/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_wide.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_wide.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_wide.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_wide.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__bcec0090_13_sgemm_wide_cu_8e940a9917sgemm_wide_kernelILi1EEEvPKfS2_Pfiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__bcec0090_13_sgemm_wide_cu_8e940a9917sgemm_wide_kernelILi1EEEvPKfS2_Pfiiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 79 registers, 8320 bytes smem, 396 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__bcec0090_13_sgemm_wide_cu_8e940a9917sgemm_wide_kernelILi2EEEvPKfS2_Pfiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__bcec0090_13_sgemm_wide_cu_8e940a9917sgemm_wide_kernelILi2EEEvPKfS2_Pfiiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 64 registers, 8320 bytes smem, 396 bytes cmem[0]
+sgemm_wide.cu
+tmpxft_0000562c_00000000-10_sgemm_wide.cudafe1.cpp
+[8/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_auto.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_auto.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_auto.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_auto.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
 sgemm_auto.cu
-tmpxft_00005b48_00000000-10_sgemm_auto.cudafe1.cpp
-[6/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe_sk.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_swpipe_sk.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+tmpxft_00004484_00000000-10_sgemm_auto.cudafe1.cpp
+[9/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_2d_tile.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_2d_tile.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_2d_tile.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_2d_tile.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi1EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi1EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 114 registers, 10880 bytes smem, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi2EEEvPKfS2_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi2EEEvPKfS2_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 114 registers, 10880 bytes smem, 388 bytes cmem[0]
+sgemm_2d_tile.cu
+tmpxft_00000350_00000000-10_sgemm_2d_tile.cudafe1.cpp
+[10/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe_sk.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_swpipe_sk.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN51_GLOBAL__N__4329d0f7_18_sgemm_swpipe_sk_cu_58a537b525swsk_reduce_direct_kernelEPKfPfxi' for 'sm_75'
 ptxas info    : Function properties for _ZN51_GLOBAL__N__4329d0f7_18_sgemm_swpipe_sk_cu_58a537b525swsk_reduce_direct_kernelEPKfPfxi
@@ -56,32 +88,8 @@ ptxas info    : Function properties for _ZN51_GLOBAL__N__4329d0f7_18_sgemm_swpip
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 61 registers, 380 bytes cmem[0]
 sgemm_swpipe_sk.cu
-tmpxft_00000f54_00000000-10_sgemm_swpipe_sk.cudafe1.cpp
-[7/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_deep_sk.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_deep_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_deep_sk.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_deep_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
-ptxas info    : 0 bytes gmem
-sgemm_deep_sk.cu
-tmpxft_00000880_00000000-10_sgemm_deep_sk.cudafe1.cpp
-[8/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_cpasync.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_cpasync.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_cpasync.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_cpasync.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
-ptxas info    : 0 bytes gmem
-ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii' for 'sm_75'
-ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 125 registers, 16640 bytes smem, 388 bytes cmem[0]
-ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii' for 'sm_75'
-ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 139 registers, 20480 bytes smem, 388 bytes cmem[0]
-sgemm_cpasync.cu
-tmpxft_000040a0_00000000-10_sgemm_cpasync.cudafe1.cpp
-[9/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_swpipe.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
-ptxas info    : 0 bytes gmem
-ptxas info    : Compiling entry function '_ZN48_GLOBAL__N__4c087c4a_15_sgemm_swpipe_cu_92d666bc19sgemm_swpipe_kernelEPKfS1_Pfiiiii' for 'sm_75'
-ptxas info    : Function properties for _ZN48_GLOBAL__N__4c087c4a_15_sgemm_swpipe_cu_92d666bc19sgemm_swpipe_kernelEPKfS1_Pfiiiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 128 registers, 8320 bytes smem, 396 bytes cmem[0]
-sgemm_swpipe.cu
-tmpxft_00000f7c_00000000-10_sgemm_swpipe.cudafe1.cpp
-[10/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_smem_1d.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_smem_1d.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_smem_1d.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_smem_1d.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+tmpxft_00005520_00000000-10_sgemm_swpipe_sk.cudafe1.cpp
+[11/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_smem_1d.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_smem_1d.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_smem_1d.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_smem_1d.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi16EEEvPKfS2_Pfiii' for 'sm_75'
 ptxas info    : Function properties for _ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi16EEEvPKfS2_Pfiii
@@ -96,48 +104,24 @@ ptxas info    : Function properties for _ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 72 registers, 2688 bytes smem, 388 bytes cmem[0]
 sgemm_smem_1d.cu
-tmpxft_000058d0_00000000-10_sgemm_smem_1d.cudafe1.cpp
-[11/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_wide.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_wide.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_wide.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_wide.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+tmpxft_000058d8_00000000-10_sgemm_smem_1d.cudafe1.cpp
+[12/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_cpasync.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_cpasync.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_cpasync.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_cpasync.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
-ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__bcec0090_13_sgemm_wide_cu_8e940a9917sgemm_wide_kernelILi1EEEvPKfS2_Pfiiiii' for 'sm_75'
-ptxas info    : Function properties for _ZN46_GLOBAL__N__bcec0090_13_sgemm_wide_cu_8e940a9917sgemm_wide_kernelILi1EEEvPKfS2_Pfiiiii
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 79 registers, 8320 bytes smem, 396 bytes cmem[0]
-ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__bcec0090_13_sgemm_wide_cu_8e940a9917sgemm_wide_kernelILi2EEEvPKfS2_Pfiiiii' for 'sm_75'
-ptxas info    : Function properties for _ZN46_GLOBAL__N__bcec0090_13_sgemm_wide_cu_8e940a9917sgemm_wide_kernelILi2EEEvPKfS2_Pfiiiii
+ptxas info    : Used 125 registers, 16640 bytes smem, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 64 registers, 8320 bytes smem, 396 bytes cmem[0]
-sgemm_wide.cu
-tmpxft_00005580_00000000-10_sgemm_wide.cudafe1.cpp
-[12/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_2d_tile.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_2d_tile.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_2d_tile.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_2d_tile.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
-ptxas info    : 0 bytes gmem
-ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi1EEEvPKfS2_Pfiii' for 'sm_75'
-ptxas info    : Function properties for _ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi1EEEvPKfS2_Pfiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 114 registers, 10880 bytes smem, 388 bytes cmem[0]
-ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi2EEEvPKfS2_Pfiii' for 'sm_75'
-ptxas info    : Function properties for _ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi2EEEvPKfS2_Pfiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 114 registers, 10880 bytes smem, 388 bytes cmem[0]
-sgemm_2d_tile.cu
-tmpxft_000058c4_00000000-10_sgemm_2d_tile.cudafe1.cpp
-[13/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_streamk.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_streamk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_streamk.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_streamk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
-ptxas info    : 0 bytes gmem
-ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0EEEvPKfS2_PfS3_Pjiiiiiiii' for 'sm_75'
-ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0EEEvPKfS2_PfS3_Pjiiiiiiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 255 registers, 12420 bytes smem, 424 bytes cmem[0]
-ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1EEEvPKfS2_PfS3_Pjiiiiiiii' for 'sm_75'
-ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1EEEvPKfS2_PfS3_Pjiiiiiiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 255 registers, 24836 bytes smem, 424 bytes cmem[0]
-sgemm_streamk.cu
-tmpxft_00003694_00000000-10_sgemm_streamk.cudafe1.cpp
-[14/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\cublas_baseline.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\cublas_baseline.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\cublas_baseline.cu -o CMakeFiles\sgemm_bench.dir\src\cublas_baseline.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+ptxas info    : Used 139 registers, 20480 bytes smem, 388 bytes cmem[0]
+sgemm_cpasync.cu
+tmpxft_00005174_00000000-10_sgemm_cpasync.cudafe1.cpp
+[13/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\cublas_baseline.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\cublas_baseline.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\cublas_baseline.cu -o CMakeFiles\sgemm_bench.dir\src\cublas_baseline.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
 cublas_baseline.cu
-tmpxft_00005a14_00000000-10_cublas_baseline.cudafe1.cpp
-[15/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_ws.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_ws.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_ws.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_ws.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+tmpxft_00003420_00000000-10_cublas_baseline.cudafe1.cpp
+[14/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_ws.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_ws.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_ws.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_ws.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN44_GLOBAL__N__6beada00_11_sgemm_ws_cu_df0e158f9ws_kernelILi2ELi2ELi1EEEvPKfS2_Pfiiii' for 'sm_75'
 ptxas info    : Function properties for _ZN44_GLOBAL__N__6beada00_11_sgemm_ws_cu_df0e158f9ws_kernelILi2ELi2ELi1EEEvPKfS2_Pfiiii
@@ -172,48 +156,68 @@ ptxas info    : Function properties for _ZN44_GLOBAL__N__6beada00_11_sgemm_ws_cu
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 128 registers, 24960 bytes smem, 392 bytes cmem[0]
 sgemm_ws.cu
-tmpxft_000040f8_00000000-10_sgemm_ws.cudafe1.cpp
-[16/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\main.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\main.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\main.cu -o CMakeFiles\sgemm_bench.dir\src\main.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+tmpxft_00003d68_00000000-10_sgemm_ws.cudafe1.cpp
+[15/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\main.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\main.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\main.cu -o CMakeFiles\sgemm_bench.dir\src\main.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
 main.cu
-tmpxft_00004278_00000000-10_main.cudafe1.cpp
-[17/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\tests\test_correctness.cu.obj -MF CMakeFiles\sgemm_test.dir\tests\test_correctness.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\tests\test_correctness.cu -o CMakeFiles\sgemm_test.dir\tests\test_correctness.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_000025fc_00000000-10_main.cudafe1.cpp
+[16/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\tests\test_correctness.cu.obj -MF CMakeFiles\sgemm_test.dir\tests\test_correctness.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\tests\test_correctness.cu -o CMakeFiles\sgemm_test.dir\tests\test_correctness.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 test_correctness.cu
-tmpxft_00004e88_00000000-10_test_correctness.cudafe1.cpp
-[18/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_naive.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_naive.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_naive.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_naive.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_00004cec_00000000-10_test_correctness.cudafe1.cpp
+[17/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_streamk.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_streamk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_streamk.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_streamk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
-ptxas info    : Compiling entry function '_ZN47_GLOBAL__N__e1d4fbe9_14_sgemm_naive_cu_a70282d218sgemm_naive_kernelEPKfS1_Pfiii' for 'sm_75'
-ptxas info    : Function properties for _ZN47_GLOBAL__N__e1d4fbe9_14_sgemm_naive_cu_a70282d218sgemm_naive_kernelEPKfS1_Pfiii
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0ELi0EEEvPKfS2_PfS3_Pjiiiiiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0ELi0EEEvPKfS2_PfS3_Pjiiiiiiiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 50 registers, 388 bytes cmem[0]
-sgemm_naive.cu
-tmpxft_00002cb0_00000000-10_sgemm_naive.cudafe1.cpp
-[19/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_coalesced.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_coalesced.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_coalesced.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_coalesced.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+ptxas info    : Used 255 registers, 12420 bytes smem, 428 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0ELi1EEEvPKfS2_PfS3_Pjiiiiiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0ELi1EEEvPKfS2_PfS3_Pjiiiiiiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 254 registers, 12420 bytes smem, 428 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1ELi0EEEvPKfS2_PfS3_Pjiiiiiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1ELi0EEEvPKfS2_PfS3_Pjiiiiiiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 255 registers, 24836 bytes smem, 428 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1ELi1EEEvPKfS2_PfS3_Pjiiiiiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1ELi1EEEvPKfS2_PfS3_Pjiiiiiiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 254 registers, 24836 bytes smem, 428 bytes cmem[0]
+sgemm_streamk.cu
+tmpxft_00005844_00000000-10_sgemm_streamk.cudafe1.cpp
+[18/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_coalesced.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_coalesced.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_coalesced.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_coalesced.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN51_GLOBAL__N__2dd19405_18_sgemm_coalesced_cu_0141b79922sgemm_coalesced_kernelEPKfS1_Pfiii' for 'sm_75'
 ptxas info    : Function properties for _ZN51_GLOBAL__N__2dd19405_18_sgemm_coalesced_cu_0141b79922sgemm_coalesced_kernelEPKfS1_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 50 registers, 388 bytes cmem[0]
 sgemm_coalesced.cu
-tmpxft_00005824_00000000-10_sgemm_coalesced.cudafe1.cpp
-[20/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_vec4.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_vec4.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_vec4.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_vec4.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_00005344_00000000-10_sgemm_coalesced.cudafe1.cpp
+[19/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_naive.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_naive.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_naive.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_naive.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN47_GLOBAL__N__e1d4fbe9_14_sgemm_naive_cu_a70282d218sgemm_naive_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN47_GLOBAL__N__e1d4fbe9_14_sgemm_naive_cu_a70282d218sgemm_naive_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 50 registers, 388 bytes cmem[0]
+sgemm_naive.cu
+tmpxft_00005360_00000000-10_sgemm_naive.cudafe1.cpp
+[20/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_vec4.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_vec4.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_vec4.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_vec4.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__acc87f88_13_sgemm_vec4_cu_2ef60d3b17sgemm_vec4_kernelEPKfS1_Pfiii' for 'sm_75'
 ptxas info    : Function properties for _ZN46_GLOBAL__N__acc87f88_13_sgemm_vec4_cu_2ef60d3b17sgemm_vec4_kernelEPKfS1_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 128 registers, 8320 bytes smem, 388 bytes cmem[0]
 sgemm_vec4.cu
-tmpxft_000056d8_00000000-10_sgemm_vec4.cudafe1.cpp
-[21/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_swpipe.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_swpipe.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_swpipe.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_swpipe.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_0000523c_00000000-10_sgemm_vec4.cudafe1.cpp
+[21/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_swpipe.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_swpipe.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_swpipe.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_swpipe.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN48_GLOBAL__N__4c087c4a_15_sgemm_swpipe_cu_92d666bc19sgemm_swpipe_kernelEPKfS1_Pfiiiii' for 'sm_75'
 ptxas info    : Function properties for _ZN48_GLOBAL__N__4c087c4a_15_sgemm_swpipe_cu_92d666bc19sgemm_swpipe_kernelEPKfS1_Pfiiiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 128 registers, 8320 bytes smem, 396 bytes cmem[0]
 sgemm_swpipe.cu
-tmpxft_00005ad0_00000000-10_sgemm_swpipe.cudafe1.cpp
-[22/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_2d_tile.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_2d_tile.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_2d_tile.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_2d_tile.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_000039d8_00000000-10_sgemm_swpipe.cudafe1.cpp
+[22/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_2d_tile.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_2d_tile.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_2d_tile.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_2d_tile.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi1EEEvPKfS2_Pfiii' for 'sm_75'
 ptxas info    : Function properties for _ZN49_GLOBAL__N__a7441048_16_sgemm_2d_tile_cu_186589bb20sgemm_2d_tile_kernelILi1EEEvPKfS2_Pfiii
@@ -224,8 +228,8 @@ ptxas info    : Function properties for _ZN49_GLOBAL__N__a7441048_16_sgemm_2d_ti
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 114 registers, 10880 bytes smem, 388 bytes cmem[0]
 sgemm_2d_tile.cu
-tmpxft_00005008_00000000-10_sgemm_2d_tile.cudafe1.cpp
-[23/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_smem_1d.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_smem_1d.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_smem_1d.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_smem_1d.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_0000554c_00000000-10_sgemm_2d_tile.cudafe1.cpp
+[23/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_smem_1d.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_smem_1d.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_smem_1d.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_smem_1d.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi16EEEvPKfS2_Pfiii' for 'sm_75'
 ptxas info    : Function properties for _ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_1d_cu_b4b5ce0d20sgemm_smem_1d_kernelILi16EEEvPKfS2_Pfiii
@@ -240,24 +244,8 @@ ptxas info    : Function properties for _ZN49_GLOBAL__N__36c8d48a_16_sgemm_smem_
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 72 registers, 2688 bytes smem, 388 bytes cmem[0]
 sgemm_smem_1d.cu
-tmpxft_000029d4_00000000-10_sgemm_smem_1d.cudafe1.cpp
-[24/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_wide_sk.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_wide_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_wide_sk.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_wide_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
-ptxas info    : 0 bytes gmem
-sgemm_wide_sk.cu
-tmpxft_00001030_00000000-10_sgemm_wide_sk.cudafe1.cpp
-[25/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_cpasync.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_cpasync.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_cpasync.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_cpasync.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
-ptxas info    : 0 bytes gmem
-ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii' for 'sm_75'
-ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 125 registers, 16640 bytes smem, 388 bytes cmem[0]
-ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii' for 'sm_75'
-ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 139 registers, 20480 bytes smem, 388 bytes cmem[0]
-sgemm_cpasync.cu
-tmpxft_00002574_00000000-10_sgemm_cpasync.cudafe1.cpp
-[26/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_swpipe_sk.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_swpipe_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_swpipe_sk.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_swpipe_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_0000550c_00000000-10_sgemm_smem_1d.cudafe1.cpp
+[24/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_swpipe_sk.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_swpipe_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_swpipe_sk.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_swpipe_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN51_GLOBAL__N__4329d0f7_18_sgemm_swpipe_sk_cu_58a537b525swsk_reduce_direct_kernelEPKfPfxi' for 'sm_75'
 ptxas info    : Function properties for _ZN51_GLOBAL__N__4329d0f7_18_sgemm_swpipe_sk_cu_58a537b525swsk_reduce_direct_kernelEPKfPfxi
@@ -276,8 +264,24 @@ ptxas info    : Function properties for _ZN51_GLOBAL__N__4329d0f7_18_sgemm_swpip
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 61 registers, 380 bytes cmem[0]
 sgemm_swpipe_sk.cu
-tmpxft_00004a9c_00000000-10_sgemm_swpipe_sk.cudafe1.cpp
-[27/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_wide.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_wide.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_wide.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_wide.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_00005944_00000000-10_sgemm_swpipe_sk.cudafe1.cpp
+[25/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_wide_sk.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_wide_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_wide_sk.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_wide_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+ptxas info    : 0 bytes gmem
+sgemm_wide_sk.cu
+tmpxft_00002c18_00000000-10_sgemm_wide_sk.cudafe1.cpp
+[26/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_cpasync.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_cpasync.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_cpasync.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_cpasync.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b23sgemm_cpasync_v2_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 125 registers, 16640 bytes smem, 388 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__09239fa5_16_sgemm_cpasync_cu_93ab3f3b20sgemm_cpasync_kernelEPKfS1_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 139 registers, 20480 bytes smem, 388 bytes cmem[0]
+sgemm_cpasync.cu
+tmpxft_00004140_00000000-10_sgemm_cpasync.cudafe1.cpp
+[27/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_wide.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_wide.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_wide.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_wide.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__bcec0090_13_sgemm_wide_cu_8e940a9917sgemm_wide_kernelILi1EEEvPKfS2_Pfiiiii' for 'sm_75'
 ptxas info    : Function properties for _ZN46_GLOBAL__N__bcec0090_13_sgemm_wide_cu_8e940a9917sgemm_wide_kernelILi1EEEvPKfS2_Pfiiiii
@@ -288,16 +292,16 @@ ptxas info    : Function properties for _ZN46_GLOBAL__N__bcec0090_13_sgemm_wide_
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 64 registers, 8320 bytes smem, 396 bytes cmem[0]
 sgemm_wide.cu
-tmpxft_000059c4_00000000-10_sgemm_wide.cudafe1.cpp
-[28/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_deep_sk.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_deep_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_deep_sk.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_deep_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_00004f44_00000000-10_sgemm_wide.cudafe1.cpp
+[28/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_deep_sk.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_deep_sk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_deep_sk.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_deep_sk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 sgemm_deep_sk.cu
-tmpxft_000008ec_00000000-10_sgemm_deep_sk.cudafe1.cpp
-[29/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_auto.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_auto.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_auto.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_auto.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_00005500_00000000-10_sgemm_deep_sk.cudafe1.cpp
+[29/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_auto.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_auto.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_auto.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_auto.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 sgemm_auto.cu
-tmpxft_00002e30_00000000-10_sgemm_auto.cudafe1.cpp
-[30/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_ws.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_ws.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_ws.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_ws.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_00003254_00000000-10_sgemm_auto.cudafe1.cpp
+[30/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_ws.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_ws.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_ws.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_ws.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN44_GLOBAL__N__6beada00_11_sgemm_ws_cu_df0e158f9ws_kernelILi2ELi2ELi1EEEvPKfS2_Pfiiii' for 'sm_75'
 ptxas info    : Function properties for _ZN44_GLOBAL__N__6beada00_11_sgemm_ws_cu_df0e158f9ws_kernelILi2ELi2ELi1EEEvPKfS2_Pfiiii
@@ -332,24 +336,12 @@ ptxas info    : Function properties for _ZN44_GLOBAL__N__6beada00_11_sgemm_ws_cu
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 128 registers, 24960 bytes smem, 392 bytes cmem[0]
 sgemm_ws.cu
-tmpxft_00002fb0_00000000-10_sgemm_ws.cudafe1.cpp
-[31/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_streamk.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_streamk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_streamk.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_streamk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
-ptxas info    : 0 bytes gmem
-ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0EEEvPKfS2_PfS3_Pjiiiiiiii' for 'sm_75'
-ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0EEEvPKfS2_PfS3_Pjiiiiiiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 255 registers, 12420 bytes smem, 424 bytes cmem[0]
-ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1EEEvPKfS2_PfS3_Pjiiiiiiii' for 'sm_75'
-ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1EEEvPKfS2_PfS3_Pjiiiiiiii
-    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
-ptxas info    : Used 255 registers, 24836 bytes smem, 424 bytes cmem[0]
-sgemm_streamk.cu
-tmpxft_000056bc_00000000-10_sgemm_streamk.cudafe1.cpp
-[32/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\cublas_baseline.cu.obj -MF CMakeFiles\sgemm_test.dir\src\cublas_baseline.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\cublas_baseline.cu -o CMakeFiles\sgemm_test.dir\src\cublas_baseline.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_00005b80_00000000-10_sgemm_ws.cudafe1.cpp
+[31/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\cublas_baseline.cu.obj -MF CMakeFiles\sgemm_test.dir\src\cublas_baseline.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\cublas_baseline.cu -o CMakeFiles\sgemm_test.dir\src\cublas_baseline.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 cublas_baseline.cu
-tmpxft_00000fcc_00000000-10_cublas_baseline.cudafe1.cpp
-[33/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_deep.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_deep.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_deep.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_deep.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
+tmpxft_0000562c_00000000-10_cublas_baseline.cudafe1.cpp
+[32/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_bench.dir\src\sgemm_deep.cu.obj -MF CMakeFiles\sgemm_bench.dir\src\sgemm_deep.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_deep.cu -o CMakeFiles\sgemm_bench.dir\src\sgemm_deep.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_bench.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi0ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiiii' for 'sm_75'
 ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi0ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiiii
@@ -432,9 +424,29 @@ ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 254 registers, 24832 bytes smem, 408 bytes cmem[0]
 sgemm_deep.cu
-tmpxft_00002b0c_00000000-10_sgemm_deep.cudafe1.cpp
-[34/36] C:\WINDOWS\system32\cmd.exe /C "cd . && C:\Python311\Lib\site-packages\cmake\data\bin\cmake.exe -E vs_link_exe --intdir=CMakeFiles\sgemm_bench.dir --rc="C:\Users\l30086046\csg-tools\msvc\Windows Kits\10\bin\10.0.26100.0\x64\rc.exe" --mt="C:\Users\l30086046\csg-tools\msvc\Windows Kits\10\bin\10.0.26100.0\x64\mt.exe" --manifests  -- C:\Users\l30086046\csg-tools\msvc\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\link.exe /nologo CMakeFiles\sgemm_bench.dir\src\main.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_naive.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_coalesced.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_smem_1d.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_2d_tile.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_vec4.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_cpasync.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe_sk.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_ws.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_wide.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_wide_sk.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_deep.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_deep_sk.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_streamk.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_auto.cu.obj CMakeFiles\sgemm_bench.dir\src\cublas_baseline.cu.obj  /out:sgemm_bench.exe /implib:sgemm_bench.lib /pdb:sgemm_bench.pdb /version:0.0 /machine:x64 /INCREMENTAL:NO  C:\Users\l30086046\csg-tools\cuda-toolkit\lib\x64\cudart.lib  C:\Users\l30086046\csg-tools\cuda-toolkit\lib\x64\cublas.lib  C:\Users\l30086046\csg-tools\cuda-toolkit\lib\x64\cublasLt.lib  cudadevrt.lib  cudart_static.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib -LIBPATH:"C:/Users/l30086046/csg-tools/cuda-toolkit/lib/x64" && cd ."
-[35/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"3eb19bf\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_deep.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_deep.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_deep.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_deep.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+tmpxft_0000394c_00000000-10_sgemm_deep.cudafe1.cpp
+[33/36] C:\WINDOWS\system32\cmd.exe /C "cd . && C:\Python311\Lib\site-packages\cmake\data\bin\cmake.exe -E vs_link_exe --intdir=CMakeFiles\sgemm_bench.dir --rc="C:\Users\l30086046\csg-tools\msvc\Windows Kits\10\bin\10.0.26100.0\x64\rc.exe" --mt="C:\Users\l30086046\csg-tools\msvc\Windows Kits\10\bin\10.0.26100.0\x64\mt.exe" --manifests  -- C:\Users\l30086046\csg-tools\msvc\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\link.exe /nologo CMakeFiles\sgemm_bench.dir\src\main.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_naive.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_coalesced.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_smem_1d.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_2d_tile.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_vec4.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_cpasync.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_swpipe_sk.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_ws.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_wide.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_wide_sk.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_deep.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_deep_sk.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_streamk.cu.obj CMakeFiles\sgemm_bench.dir\src\sgemm_auto.cu.obj CMakeFiles\sgemm_bench.dir\src\cublas_baseline.cu.obj  /out:sgemm_bench.exe /implib:sgemm_bench.lib /pdb:sgemm_bench.pdb /version:0.0 /machine:x64 /INCREMENTAL:NO  C:\Users\l30086046\csg-tools\cuda-toolkit\lib\x64\cudart.lib  C:\Users\l30086046\csg-tools\cuda-toolkit\lib\x64\cublas.lib  C:\Users\l30086046\csg-tools\cuda-toolkit\lib\x64\cublasLt.lib  cudadevrt.lib  cudart_static.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib -LIBPATH:"C:/Users/l30086046/csg-tools/cuda-toolkit/lib/x64" && cd ."
+[34/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_streamk.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_streamk.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_streamk.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_streamk.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0ELi0EEEvPKfS2_PfS3_Pjiiiiiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0ELi0EEEvPKfS2_PfS3_Pjiiiiiiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 255 registers, 12420 bytes smem, 428 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0ELi1EEEvPKfS2_PfS3_Pjiiiiiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0ELi1EEEvPKfS2_PfS3_Pjiiiiiiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 254 registers, 12420 bytes smem, 428 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1ELi0EEEvPKfS2_PfS3_Pjiiiiiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1ELi0EEEvPKfS2_PfS3_Pjiiiiiiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 255 registers, 24836 bytes smem, 428 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1ELi1EEEvPKfS2_PfS3_Pjiiiiiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1ELi1EEEvPKfS2_PfS3_Pjiiiiiiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 254 registers, 24836 bytes smem, 428 bytes cmem[0]
+sgemm_streamk.cu
+tmpxft_00002cb4_00000000-10_sgemm_streamk.cudafe1.cpp
+[35/36] C:\Users\l30086046\csg-tools\cuda-toolkit\bin\nvcc.exe -forward-unknown-to-host-compiler -DGIT_SHA=\"e87141a\" -IC:\Users\l30086046\Documents\【学习项目】cuda-sgemm\include -isystem C:\Users\l30086046\csg-tools\cuda-toolkit\include -D_WINDOWS -Xcompiler=" /GR /EHsc" -Xcompiler="-O2 -Ob2" -DNDEBUG -std=c++17 "--generate-code=arch=compute_75,code=[compute_75,sm_75]" -Xcompiler=-MD -lineinfo -Xptxas=-v -Xcompiler=/utf-8 -Xcompiler=/wd4828 -MD -MT CMakeFiles\sgemm_test.dir\src\sgemm_deep.cu.obj -MF CMakeFiles\sgemm_test.dir\src\sgemm_deep.cu.obj.d -x cu -c C:\Users\l30086046\Documents\【学习项目】cuda-sgemm\src\sgemm_deep.cu -o CMakeFiles\sgemm_test.dir\src\sgemm_deep.cu.obj -Xcompiler=-FdCMakeFiles\sgemm_test.dir\,-FS
 ptxas info    : 0 bytes gmem
 ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi0ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiiii' for 'sm_75'
 ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi0ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiiii
@@ -517,6 +529,6 @@ ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 254 registers, 24832 bytes smem, 408 bytes cmem[0]
 sgemm_deep.cu
-tmpxft_00004e2c_00000000-10_sgemm_deep.cudafe1.cpp
+tmpxft_0000542c_00000000-10_sgemm_deep.cudafe1.cpp
 [36/36] C:\WINDOWS\system32\cmd.exe /C "cd . && C:\Python311\Lib\site-packages\cmake\data\bin\cmake.exe -E vs_link_exe --intdir=CMakeFiles\sgemm_test.dir --rc="C:\Users\l30086046\csg-tools\msvc\Windows Kits\10\bin\10.0.26100.0\x64\rc.exe" --mt="C:\Users\l30086046\csg-tools\msvc\Windows Kits\10\bin\10.0.26100.0\x64\mt.exe" --manifests  -- C:\Users\l30086046\csg-tools\msvc\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\link.exe /nologo CMakeFiles\sgemm_test.dir\tests\test_correctness.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_naive.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_coalesced.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_smem_1d.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_2d_tile.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_vec4.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_cpasync.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_swpipe.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_swpipe_sk.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_ws.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_wide.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_wide_sk.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_deep.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_deep_sk.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_streamk.cu.obj CMakeFiles\sgemm_test.dir\src\sgemm_auto.cu.obj CMakeFiles\sgemm_test.dir\src\cublas_baseline.cu.obj  /out:sgemm_test.exe /implib:sgemm_test.lib /pdb:sgemm_test.pdb /version:0.0 /machine:x64 /INCREMENTAL:NO  C:\Users\l30086046\csg-tools\cuda-toolkit\lib\x64\cudart.lib  C:\Users\l30086046\csg-tools\cuda-toolkit\lib\x64\cublas.lib  C:\Users\l30086046\csg-tools\cuda-toolkit\lib\x64\cublasLt.lib  cudadevrt.lib  cudart_static.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib -LIBPATH:"C:/Users/l30086046/csg-tools/cuda-toolkit/lib/x64" && cd ."
 

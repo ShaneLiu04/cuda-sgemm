@@ -3389,6 +3389,140 @@ fig_gates_v4()
 fig_ladder_v4()
 
 
+# ---------------- AR012 fig35: L2 block-order swizzle ablation triptych ------
+# 数据/证据：results/swizzle_ar012.csv（2026-10-07 实测，git=e87141a，3 轮中位，
+# {deep,dsk,streamk} × {swz0, swz1g4/8/16} × 5 尺寸，47C 冷却 + 每轮 cublas
+# 首锚协议）+ build.log ptxas（20 deep 实例 + 4 streamk 实例全 0 spill）。
+# 结论（G7 判定，kernel 分立）：deep/dsk 全负（2D 线性光栅已优——bx=n 最快
+# 的行主序 B 复用；重排破坏）；**streamk-only 正**（+3.9%@2048³ / +9.1%@4096³
+# / +1.6%@1024³，512³ -0.05pp 门内）——1D c 空间 tile-major 线性化的默认
+# 块序 L2 复用差，分组列序修正。G=4 全尺寸最优或并列 → T006 auto v5
+# 仅 streamk 路径吸收 --swz 1 --swzg 4。副产物：streamk swz1g4 @2048³ =
+# 88.3% cuBLAS → G6（≥85%）翻门（AR011 曾 miss 84.85%）。
+def fig35_swizzle_ablation():
+    import statistics as st
+    csv_path = os.path.join(OUT_DIR, "..", "swizzle_ar012.csv")
+    if not os.path.exists(csv_path):
+        print("fig35 skipped (swizzle_ar012.csv missing)")
+        return
+    rows = [r for r in csv.DictReader(
+        filter(lambda l: not l.startswith("#"), open(csv_path)))
+        if r.get("kernel")]
+    med = {}
+    for r in rows:
+        key = (int(r["n"]), r["kernel"])
+        med.setdefault(key, []).append(float(r["gflops"]))
+    for k in med:
+        med[k] = st.median(med[k])
+
+    kerns = ["deep", "dsk", "streamk"]
+    tags = [("swz0", "linear (swz=0)", "#37474f"),
+            ("swz1g4", "swz=1 G=4", "#1976d2"),
+            ("swz1g8", "swz=1 G=8", "#e64a19"),
+            ("swz1g16", "swz=1 G=16", "#8e24aa")]
+    gate_sizes = [2048, 4096]           # (a) G7 主判定
+    all_sizes = [2048, 4096, 1024, 512, 256]
+
+    fig, (ax1, ax2, ax3) = plt.subplots(
+        1, 3, figsize=(16.8, 5.4),
+        gridspec_kw={"width_ratios": [1.35, 0.9, 1.1]})
+
+    # ---- (a) G7 主判定区带 @2048³/4096³：全 kernel × 4 配置 ----
+    x = np.arange(len(gate_sizes) * len(kerns))
+    bw = 0.2
+    for i, (tag, lab, col) in enumerate(tags):
+        vals = [med[(s, k + "_" + tag)]
+                for s in gate_sizes for k in kerns]
+        offs = (i - 1.5) * bw
+        bars = ax1.bar(x + offs, vals, bw * 0.9, color=col, label=lab, zorder=3)
+        for b_, v, s, k in zip(bars, vals, [s for s in gate_sizes for _ in kerns],
+                               [k for _ in gate_sizes for k in kerns]):
+            base = med[(s, k + "_swz0")]
+            if tag != "swz0":
+                ax1.text(b_.get_x() + b_.get_width() / 2, v + 15,
+                         f"{(v / base - 1) * 100:+.1f}%", ha="center",
+                         va="bottom", fontsize=6.4, color=col)
+    for xi, s in enumerate(gate_sizes):
+        for ki, k in enumerate(kerns):
+            cv = med[(s, "cublas")]
+            xi_full = xi * len(kerns) + ki
+            ax1.hlines(cv, xi_full - 0.55, xi_full + 0.55, color="#c62828",
+                       lw=1.3, ls="--", zorder=4)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels([f"{k}\n{s}$^3$" for s in gate_sizes for k in kerns],
+                        fontsize=8)
+    ax1.set_ylabel("GFLOPS", fontsize=10)
+    lo = min(v for (s, k), v in med.items()
+             if k != "cublas" and s in gate_sizes) * 0.97
+    ax1.set_ylim(lo, None)
+    ax1.legend(fontsize=8, ncol=4, loc="upper left", framealpha=0.9)
+    ax1.grid(axis="y", alpha=0.3, zorder=0)
+    ax1.set_title("(a) G7 gate sizes: streamk-only positive\n"
+                  "(deep/dsk negative — dashed = cuBLAS)",
+                  fontsize=9.5)
+
+    # ---- (b) 波足迹机理示意 @2048³（design §4.2.1 核算）----
+    # deep t=128 块 = 2.67 波；线性：波 = 3m×16n（A 6.3 + B 16.8MB，B 全宽
+    # 重读）；G=8：8m×6n（A 16.8 + B 6.3MB）；G=4：12m×4n（A 25 + B 4.2MB）
+    orders = ["linear\n(3m x 16n)", "G=8\n(8m x 6n)", "G=4\n(12m x 4n)"]
+    a_mb = [6.3, 16.8, 25.0]
+    b_mb = [16.8, 6.3, 4.2]
+    xx = np.arange(3)
+    bars_a = ax2.bar(xx - 0.19, a_mb, 0.34, color="#1976d2",
+                     label="A slab / wave", zorder=3)
+    bars_b = ax2.bar(xx + 0.19, b_mb, 0.34, color="#e64a19",
+                     label="B slab / wave", zorder=3)
+    for b_, v in zip(bars_a, a_mb):
+        ax2.text(b_.get_x() + b_.get_width() / 2, v + 0.4, f"{v:.1f}",
+                 ha="center", fontsize=8, color="#1976d2")
+    for b_, v in zip(bars_b, b_mb):
+        ax2.text(b_.get_x() + b_.get_width() / 2, v + 0.4, f"{v:.1f}",
+                 ha="center", fontsize=8, color="#e64a19")
+    ax2.set_xticks(xx)
+    ax2.set_xticklabels(orders, fontsize=8.5)
+    ax2.set_ylabel("MB touched per wave", fontsize=10)
+    ax2.legend(fontsize=8.5, loc="upper left")
+    ax2.grid(axis="y", alpha=0.3, zorder=0)
+    ax2.set_title("(b) wave footprint @2048$^3$ (deep 2.67 waves,\n"
+                  "48KB L2 fits neither slab — order decides reuse)",
+                  fontsize=9.5)
+
+    # ---- (c) G7 判定矩阵：delta%（swz0 → best swz1）× kernel × 尺寸 ----
+    data = np.zeros((len(kerns), len(all_sizes)))
+    for ki, k in enumerate(kerns):
+        for si, s in enumerate(all_sizes):
+            base = med[(s, k + "_swz0")]
+            best = max(med[(s, k + "_swz1g4")], med[(s, k + "_swz1g8")],
+                       med[(s, k + "_swz1g16")])
+            data[ki, si] = (best / base - 1) * 100
+    im = ax3.imshow(data, cmap="RdYlGn", vmin=-10, vmax=10, aspect="auto",
+                    zorder=2)
+    for ki in range(len(kerns)):
+        for si in range(len(all_sizes)):
+            v = data[ki, si]
+            ax3.text(si, ki, f"{v:+.1f}%", ha="center", va="center",
+                     fontsize=9, fontweight="bold" if abs(v) >= 1 else "normal",
+                     color="#1b1b1b")
+    ax3.set_xticks(range(len(all_sizes)))
+    ax3.set_xticklabels([f"{s}$^3$" for s in all_sizes], fontsize=9)
+    ax3.set_yticks(range(len(kerns)))
+    ax3.set_yticklabels(kerns, fontsize=9.5)
+    ax3.set_title("(c) best-swz1 delta vs swz0 (gate: $\\geq$+1%\n"
+                  "@2048/4096 AND no >0.5pp regression @512/1024)",
+                  fontsize=9.5)
+    fig.colorbar(im, ax=ax3, fraction=0.045, pad=0.03, label="%")
+
+    fig.suptitle("AR012 T004 FR2 L2 block-order swizzle ablation "
+                 "(git=e87141a, swizzle_ar012.csv): G7 = streamk-only "
+                 "absorption, G=4",
+                 fontsize=13, fontweight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.92))
+    fig.savefig(os.path.join(OUT_DIR, "fig35_swizzle_ablation.png"))
+    plt.close(fig)
+
+fig35_swizzle_ablation()
+
+
 # ---------------- 体积纪律：全部图量化到 <= 72KB ----------------
 # gitee HTTPS push 经 BDWAF，POST body ~100KB 即 403；本工程既定纪律
 # （沿袭远端 "PNG quantization to 72KB target"）——纯 PIL 可复现。
