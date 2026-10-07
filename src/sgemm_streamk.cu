@@ -67,8 +67,8 @@
 #include <cstdlib>
 
 namespace sgemm {
-int g_streamk_waves = 0;   // --waves：0 = auto 公式 clamp(floor(TOT/(48·16)),1,8)
-                           // （design §4.2.6；T005 sweep 校准后 auto v4 表接管）
+int g_streamk_waves = 0;   // --waves：0 = auto（T005 校准 = 恒 W=1，
+                           // streamk_ar011.csv 实测 W>1 单调负）
 int g_l2_persist = 0;      // --persist：1 = 计时区内 accessPolicyWindow 钉 C
                            // + 计时区后强制复位（先于 cuBLAS 锚定，协议纪律）
 double g_l2_hit = 0.8;     // --hit：hitRatio（0.5..1.0）
@@ -416,15 +416,15 @@ void sgemm_streamk(const float* A, const float* B, float* C,
         return;
     }
 
-    // W 选择（design §4.2.6）：--waves 0 = auto（U>=16 k 深度下限防 P 税），
-    // 显式 1..8 直接采用（消融/实验用；B>TOT 时多余块空退出，波填破坏但正确）
+    // W 选择（design §4.2.6）：--waves 0 = auto。T005 sweep 实测校准（AR011，
+    // streamk_ar011.csv，3 轮中位）：W=1 全尺寸最优、W>1 单调负（P 税 +
+    // 块/SM 占用损失），auto 公式坍缩为恒 W=1；显式 1..8 直接采用（消融/
+    // 实验用；B>TOT 时多余块空退出，波填破坏但正确）
     int W;
     if (sgemm::g_streamk_waves > 0) {
         W = sgemm::g_streamk_waves;
     } else {
-        W = (int)(TOT_ll / (48 * 16));
-        if (W < 1) W = 1;
-        if (W > 8) W = 8;
+        W = 1;   // T005 校准（原 floor(TOT/768) 公式方向性错误，负结果归档）
     }
     const int B_blocks = 48 * W;
     const int U = (int)((TOT_ll + B_blocks - 1) / B_blocks);
