@@ -257,7 +257,7 @@ cuda-sgemm/
 | [`docs/EXPERIMENT_DESIGN.md`](docs/EXPERIMENT_DESIGN.md) | 可解释性实验设计（目的/假设/方法/判伪） |
 | [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) | 严格测试手册 |
 | [`specs/component-detail-design/cuda_sgemm_spec.md`](specs/component-detail-design/cuda_sgemm_spec.md) | 组件详设：统一契约（接口/计时/CSV/判据） |
-| [`specs/changes/AR010-deep-tile/`](specs/changes/AR010-deep-tile/) | AR010 工单：srs / design / tasks（T001-T007 passing） |
+| [`specs/archive/AR011-streamk-and-latency/`](specs/archive/AR011-streamk-and-latency/) | AR011 工单：srs / design / tasks（T001-T009 passing）/ st_report（已完成归档） |
 | [`AGENTS.md`](AGENTS.md) | 开发军规：CUDA 编码 / 测量纪律 / TDD 规则 |
 
 ## 10. 图表总览
