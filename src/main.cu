@@ -200,18 +200,33 @@ int main(int argc, char** argv) {
     }
     // AR011：L2 persistence 钉 C 开关（--persist，dsk/streamk 有效；--hit 为其
     // hitRatio 子旋钮）。协议纪律（design §4.2.4）：pin 在计时区内、reset 在
-    // 计时区后且先于任何 cuBLAS 锚定运行
-    if (opt.kernel == "dsk" || opt.kernel == "streamk") {
-        sgemm::g_l2_persist = opt.persist;
-        sgemm::g_l2_hit     = opt.hit;
-    } else if (opt.persist != 0) {
-        std::fprintf(stderr,
-                      "[note] --persist applies to kernel 'dsk'/'streamk' only "
-                      "(ignored for '%s')\n",
-                      opt.kernel.c_str());
-    } else if (opt.hit != 0.8) {
-        std::fprintf(stderr,
-                      "[note] --hit is effective with --persist 1 only (ignored)\n");
+    // 计时区后且先于任何 cuBLAS 锚定运行。
+    // T003 能力墙收口（2026-10-07 runtime 实测）：TU104 sm_75 无 L2
+    // persistence（persistingL2CacheMaxSize=0 / window=0 / setLimit 报
+    // "not supported on this architecture"，Ampere+ 特性）→ FR2 判 N/A，
+    // 优雅降级为 [note]（不写死代码路径；负结果证据见 environment.md §8）
+    {
+        cudaDeviceProp prop;
+        cudaGetDeviceProperties(&prop, 0);
+        const bool l2_persist_ok = (prop.persistingL2CacheMaxSize > 0);
+        if (!l2_persist_ok && opt.persist != 0) {
+            std::fprintf(stderr,
+                          "[note] --persist 1 ignored: L2 persistence not "
+                          "supported on this GPU (persistingL2CacheMaxSize=0, "
+                          "%s sm_%d%d; Ampere+ feature)\n",
+                          prop.name, prop.major, prop.minor);
+        } else if (opt.kernel == "dsk" || opt.kernel == "streamk") {
+            sgemm::g_l2_persist = opt.persist;
+            sgemm::g_l2_hit     = opt.hit;
+        } else if (opt.persist != 0) {
+            std::fprintf(stderr,
+                          "[note] --persist applies to kernel 'dsk'/'streamk' only "
+                          "(ignored for '%s')\n",
+                          opt.kernel.c_str());
+        } else if (opt.hit != 0.8) {
+            std::fprintf(stderr,
+                          "[note] --hit is effective with --persist 1 only (ignored)\n");
+        }
     }
     // 环境信息头（AGENTS.md §5：每次输出附版本信息）
     int drv = 0, rt = 0;

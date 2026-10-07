@@ -51,7 +51,15 @@ E-C 锁频重跑五门）。
   （同相停顿/barrier 歪斜/步首依赖/尾 tile）至少排除或确认两个；
 - Given TCC 不可得，When 归因实验执行，Then 替代协议数据落盘 + 环境声明更新，实验可复现。
 
-### FR2 L2 persistence window 钉 C（最快收益，P2.3）
+### FR2 L2 persistence window 钉 C（最快收益，P2.3）—— **T003 判 N/A（能力墙）**
+
+> **T003 收口（2026-10-07，负结果归档）**：runtime 验证否定了 SS7 风险项的
+> 乐观假设——TU104 sm_75 **不支持** L2 persistence（persistingL2CacheMaxSize=0、
+> MaxAccessPolicyWindowSize=0、SetLimit 报 "not supported on this architecture"；
+> Ampere+ 特性）。FR2 判 **N/A**（环境能力墙，非实现取舍）；证据与工程落点见
+> environment.md §8。G1@1024³ 翻门（缺口 1.05μs）的机制支路去掉
+> "钉 C 预计省 4~6μs"，责任转移至 Stream-K W sweep / FR3 消融 / auto v4，
+> **门线不放宽**。--persist 1 → [note] 优雅降级（exit 0）。
 
 **描述**：`cudaStreamSetAttribute` accessPolicyWindow 将 C 区域（1024³ = 4MB，恰等于
 TU104 L2 容量）设 persisting，归约读 C 从 DRAM 挪入 L2。
@@ -134,7 +142,7 @@ TU104 L2 容量）设 persisting，归约读 C 从 DRAM 挪入 L2。
 
 | 门 | 判定 | 通过条件 |
 |----|------|---------|
-| G1@1024³ | 翻门主目标 | best own ≥ 同会话 cuBLAS 75%（预期 77%+，Stream-K + 钉 C 叠加） |
+| G1@1024³ | 翻门主目标 | best own ≥ 同会话 cuBLAS 75%（预期 77%+；~~Stream-K + 钉 C 叠加~~ → T003 后机制 = Stream-K W sweep + FR3 消融 + auto v4，见 FR2 修订注） |
 | G6@2048³（新门） | Stream-K 波效率检验 | best own ≥ 同会话 cuBLAS 85%（现状 82.6% + 尾波 -11% 消除的兑现度） |
 | G1@512³ / G2@256³ / G3@4096³ | 回归保持 | ≥ AR010 终态（75.14% / 钟态匹配 PASS / ≥7.0TF） |
 | G4''' auto v4 vs v3 | 增量门 | 4/6 尺寸 %peak ≥ +2%，0 尺寸 < -2% |
@@ -171,7 +179,8 @@ TU104 L2 容量）设 persisting，归约读 C 从 DRAM 挪入 L2。
   rel≤1e-4 + 确定性门，srs 已预声明分级口径）；
 - L2 persistence 净收益为正（若 main 段退化抵消归约收益，FR2 判负结果如实归档，
   不影响 FR4 主线）；
-- hitRatio ≤1.0 时 persisting 行为可预期（sm_75 支持accessPolicyWindow，需 runtime 验证）。
+- hitRatio ≤1.0 时 persisting 行为可预期（~~sm_75 支持 accessPolicyWindow，需 runtime 验证~~
+  **已验证：sm_75 不支持**——T003 能力墙，见 FR2 修订注与环境 §8）。
 
 ## 6. 术语说明
 
