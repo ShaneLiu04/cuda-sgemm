@@ -62,6 +62,7 @@ set(KERNEL_SOURCES
     src/sgemm_wide_sk.cu
     src/sgemm_deep.cu
     src/sgemm_deep_sk.cu
+    src/sgemm_streamk.cu
     src/sgemm_auto.cu
     src/cublas_baseline.cu)
 

@@ -189,6 +189,30 @@ int main(int argc, char** argv) {
     // AR010：split-K 归约 ILP2 消融旋钮（--rv2，全局生效：swsk/wsk/dsk 共享
     // detail::swsk_reduce 单一数值路径，v1/v2 逐位等价）
     sgemm::g_reduce_ilp2 = opt.rv2;
+    // AR011：streamk 的波数旋钮（--waves，0 = auto 公式；T001 Red 阶段 kernel
+    // 未接入，绑定先行——T002 Green 接入后即生效）
+    if (opt.kernel == "streamk") {
+        sgemm::g_streamk_waves = opt.waves;
+    } else if (opt.waves != 0) {
+        std::fprintf(stderr,
+                      "[note] --waves applies to kernel 'streamk' only (ignored for '%s')\n",
+                      opt.kernel.c_str());
+    }
+    // AR011：L2 persistence 钉 C 开关（--persist，dsk/streamk 有效；--hit 为其
+    // hitRatio 子旋钮）。协议纪律（design §4.2.4）：pin 在计时区内、reset 在
+    // 计时区后且先于任何 cuBLAS 锚定运行
+    if (opt.kernel == "dsk" || opt.kernel == "streamk") {
+        sgemm::g_l2_persist = opt.persist;
+        sgemm::g_l2_hit     = opt.hit;
+    } else if (opt.persist != 0) {
+        std::fprintf(stderr,
+                      "[note] --persist applies to kernel 'dsk'/'streamk' only "
+                      "(ignored for '%s')\n",
+                      opt.kernel.c_str());
+    } else if (opt.hit != 0.8) {
+        std::fprintf(stderr,
+                      "[note] --hit is effective with --persist 1 only (ignored)\n");
+    }
     // 环境信息头（AGENTS.md §5：每次输出附版本信息）
     int drv = 0, rt = 0;
     cudaDriverGetVersion(&drv);

@@ -69,6 +69,14 @@ void sgemm_deep(const float* A, const float* B, float* C, int M, int N, int K);
 // 1024³ grid 4×8=32 blocks × sk3 = 96 = 2 精确波（1 block/SM × 48 slots）；
 // --sk 旋钮对 swsk/wsk/dsk 三生效。
 void sgemm_dsk(const float* A, const float* B, float* C, int M, int N, int K);
+// Kernel 10（AR011）：Stream-K 统一调度——迭代空间 (C-tile, k-tile) tile-major
+// 线性化后连续切分为 48·W 块（波填充率恒 100%，消灭波量化），变长 k 区间；
+// per-tile 票据归并（atomic + __threadfence，赢家按块号升序=z 升序归并部分积，
+// 链序与 dsk direct 归约逐位对齐），归约第二 kernel/启动开销/P 自片 DRAM 往返
+// 一并消除；cover==1 的 tile 走直写快路径（deep 同型）。--waves 波数旋钮
+// （g_streamk_waves，默认 0 = auto）。计算主体自包含（deep 主体逐拷贝，
+// design §4.1 问题 3 裁定：防 ptxas 重排 + 自包含军规）。
+void sgemm_streamk(const float* A, const float* B, float* C, int M, int N, int K);
 
 // ---- cuBLAS FP32 基线（严格 CUBLAS_DEFAULT_MATH，详设 §4.2）-----------
 void sgemm_cublas(const float* A, const float* B, float* C, int M, int N, int K);
@@ -119,9 +127,17 @@ extern int g_deep_dbuf;          // deep/dsk smem 双缓冲消融，默认 1（0
                                  //   1 = 双缓冲单同步（AR010 T004 实测全尺寸
                                  //   +3~14% 数据裁定），0 = 单缓冲双同步）
 extern int g_reduce_ilp2;        // swsk/wsk/dsk 归约实现消融，默认 0（0/1/3；
-                                  //   0 = v1 1 f4/线程，1 = v2 2 f4/线程（dsk -4%
-                                  //   负结果），3 = v3 4 f4/线程 + __ldcs/__stcs
-                                  //   流式（AR010 T007 攻坚，逐位等价））
+                                   //   0 = v1 1 f4/线程，1 = v2 2 f4/线程（dsk -4%
+                                   //   负结果），3 = v3 4 f4/线程 + __ldcs/__stcs
+                                   //   流式（AR010 T007 攻坚，逐位等价））
+extern int g_streamk_waves;      // --waves，Stream-K 波数 W，默认 0 = auto 公式
+                                   //   clamp(floor(TOT/(48·16)),1,8)（AR011 design
+                                   //   §4.2.6；T005 sweep 校准后 auto v4 表接管）
+extern int g_l2_persist;         // --persist，L2 persistence 钉 C 开关，默认 0；
+                                   //   1 = 计时区内 accessPolicyWindow 钉 C +
+                                   //   计时区后强制复位（先于 cuBLAS 锚定，协议纪律）
+extern double g_l2_hit;          // --hit，accessPolicyWindow hitRatio，默认 0.8
+                                   //   （0.5..1.0；C > persisting 上限时按比例钉入）
 extern bool g_verbose;           // 打印回退路径细节（测试断言路径覆盖用）
 }
 
@@ -131,12 +147,14 @@ inline constexpr int K_NAIVE = 0, K_COALESCED = 1, K_SMEM1D = 2, K_TILE2D = 3,
                       K_VEC4 = 4, K_CPASYNC = 5, K_CPASYNC2 = 6, K_SWPIPE = 7,
                       K_SWSK = 8, K_WS = 9, K_CUBLAS = 10, K_AUTO = 11,
                       K_WIDE = 12, K_WSK = 13, K_DEEP = 14, K_DSK = 15,
-                      KERNEL_COUNT = 16;
+                      K_STREAMK = 16,
+                      KERNEL_COUNT = 17;
 
 inline const char* kernel_name(int id) {
     static const char* names[KERNEL_COUNT] = {
         "naive", "coalesced", "smem1d", "tile2d", "vec4", "cpasync", "cpasync2",
-        "swpipe", "swsk", "ws", "cublas", "auto", "wide", "wsk", "deep", "dsk"};
+        "swpipe", "swsk", "ws", "cublas", "auto", "wide", "wsk", "deep", "dsk",
+        "streamk"};
     return (id >= 0 && id < KERNEL_COUNT) ? names[id] : "unknown";
 }
 
@@ -148,11 +166,13 @@ inline int kernel_id(const std::string& name) {
 }
 
 inline SgemmFn kernel_fn(int id) {
+    // AR011 T001 Red 状态：streamk 槽位 nullptr（接入前可观察 "[ERROR] kernel
+    // not registered"）；T002 Green 替换为 sgemm_streamk
     static const SgemmFn fns[KERNEL_COUNT] = {
         sgemm_naive, sgemm_coalesced, sgemm_smem_1d, sgemm_2d_tile,
         sgemm_vec4,  sgemm_cpasync,   sgemm_cpasync_v2,
         sgemm_swpipe, sgemm_swpipe_sk, sgemm_ws, sgemm_cublas, sgemm_auto,
-        sgemm_wide, sgemm_wsk, sgemm_deep, sgemm_dsk};
+        sgemm_wide, sgemm_wsk, sgemm_deep, sgemm_dsk, nullptr};
     return (id >= 0 && id < KERNEL_COUNT) ? fns[id] : nullptr;
 }
 }  // namespace sgemm

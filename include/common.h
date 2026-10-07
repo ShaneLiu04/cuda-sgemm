@@ -74,7 +74,13 @@ struct CliOptions {
                                     //  单同步，AR010 T004 实测全尺寸 +3~14% 翻转；0 = 单缓冲
                                     //  双同步，AR010 详设 §4.6）
     int rv2 = 0;                    // swsk/wsk/dsk 归约 ILP2 消融旋钮（0/1；默认 0 = 1 f4/线程
-                                    //  v1，1 = 2 f4/线程 v2 逐位等价，AR010 详设 §4.6）
+                                     //  v1，1 = 2 f4/线程 v2 逐位等价，AR010 详设 §4.6）
+    int waves = 0;                  // streamk 的波数 W 消融旋钮（0..8；默认 0 = auto 公式
+                                     //  clamp(floor(TOT/(48·16)),1,8)，AR011 详设 §4.6）
+    int persist = 0;                // dsk/streamk 的 L2 persistence 钉 C 开关（0/1；默认 0，
+                                     //  AR011 详设 §4.6；1 = 计时区内钉 C + 区后强制复位）
+    double hit = 0.8;               // --persist 的 accessPolicyWindow hitRatio（0.5..1.0；
+                                     //  默认 0.8，AR011 详设 §4.6）
     int rounds = 1;                 // 多轮统计轮数（AR007；1=单轮，与历史语义一致）
     bool list_kernels = false;
     bool help = false;
@@ -83,7 +89,7 @@ struct CliOptions {
 inline void print_usage(const char* prog) {
     std::printf(
         "Usage: %s --kernel <name> [options]\n"
-        "  --kernel   naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|swpipe|swsk|ws|auto|cublas|wide|wsk|deep|dsk|all\n"
+        "  --kernel   naive|coalesced|smem1d|tile2d|vec4|cpasync|cpasync2|swpipe|swsk|ws|auto|cublas|wide|wsk|deep|dsk|streamk|all\n"
         "  --m/--n/--k          problem size (default 4096)\n"
         "  --warmup <n>         warmup iterations (default 20, spec: >=20)\n"
         "  --iters  <n>         timed iterations (default 100, spec: >=100)\n"
@@ -103,6 +109,13 @@ inline void print_usage(const char* prog) {
         "  --rv2 <0|1|3>        split-K reduce variant ablation for swsk/wsk/dsk (default 0;\n"
         "                       0 = v1 1 f4/thread; 1 = v2 ILP2; 3 = v3 ILP4 + __ldcs/__stcs\n"
         "                       streaming hints, bit-identical chain order)\n"
+        "  --waves <0..8>       Stream-K wave count W for streamk (default 0 = auto formula\n"
+        "                       clamp(floor(TOT/(48*16)),1,8); AR011 design 4.2.6)\n"
+        "  --persist <0|1>      L2 persistence window pinning C for dsk/streamk (default 0;\n"
+        "                       1 = pin inside timed region + mandatory reset after,\n"
+        "                       before any cuBLAS anchor run)\n"
+        "  --hit <0.5..1.0>     accessPolicyWindow hitRatio (default 0.8; effective when\n"
+        "                       --persist 1; C larger than persisting limit pins fractionally)\n"
         "  --verbose            print dispatch/fallback details\n"
         "  --list-kernels       list registered kernels\n"
         "  --help               this message\n",
@@ -135,6 +148,9 @@ inline CliOptions parse_cli(int argc, char** argv) {
         else if (a == "--wlb")          opt.wlb = std::atoi(next(a.c_str()));
         else if (a == "--dbuf")         opt.dbuf = std::atoi(next(a.c_str()));
         else if (a == "--rv2")          opt.rv2 = std::atoi(next(a.c_str()));
+        else if (a == "--waves")        opt.waves = std::atoi(next(a.c_str()));
+        else if (a == "--persist")      opt.persist = std::atoi(next(a.c_str()));
+        else if (a == "--hit")          opt.hit = std::atof(next(a.c_str()));
         else if (a == "--check")        opt.check = true;
         else if (a == "--csv")          opt.csv = true;
         else if (a == "--verbose")      opt.verbose = true;
@@ -180,6 +196,18 @@ inline CliOptions parse_cli(int argc, char** argv) {
     }
     if (opt.rv2 != 0 && opt.rv2 != 1 && opt.rv2 != 3) {
         std::fprintf(stderr, "[CLI_ERROR] --rv2 must be 0, 1 or 3 (got %d)\n", opt.rv2);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.waves < 0 || opt.waves > 8) {
+        std::fprintf(stderr, "[CLI_ERROR] --waves must be in 0..8 (got %d)\n", opt.waves);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.persist != 0 && opt.persist != 1) {
+        std::fprintf(stderr, "[CLI_ERROR] --persist must be 0 or 1 (got %d)\n", opt.persist);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.hit < 0.5 || opt.hit > 1.0) {
+        std::fprintf(stderr, "[CLI_ERROR] --hit must be in 0.5..1.0 (got %.3f)\n", opt.hit);
         std::exit(EXIT_FAILURE);
     }
     return opt;
