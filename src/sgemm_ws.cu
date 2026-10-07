@@ -49,9 +49,12 @@
 // 驻留（PW=2: 62.5% 占用；PW=1: 320→288 线程双驻留 56.3%）（本设计
 // 核心实验变量，spill 与否以 build.log -Xptxas -v 为准，如实记录）。
 //
-// 主路径条件（16B 对齐，与 swpipe 相同）：N%4==0 且 K%4==0 且三指针
-// 16B 对齐；不满足 → 回退 sgemm_2d_tile（任意尺寸正确），--verbose 打印。
-// 正确性与 swpipe 主路径同累加顺序（k-tile 顺序、kstep 内 FFMA 序一致）。
+// spill 豁免记录（AR011 T009 清偿 AGENTS §4 军规 4）：stages=2 消融实例
+// ws_kernel<PW=2,STAGES=2,WP∈{1,2}> 存在 8B spill stores / 4B spill
+// loads（96 regs 锁定下环索引边缘寄存器，bench/test 双目标共 4 处编译
+// 事件，build.log 留档）；现役默认 stages=3 实例全 0 spill。stages=2 为
+// 纯消融旋钮（AR008 实测全尺寸劣于 stages=3，非默认路径不做性能主张），
+// 豁免依据 = 消融可比性优先（改动代码会改变消融对照物）。
 // =====================================================================
 #include "sgemm_kernels.h"
 #include <cstdio>

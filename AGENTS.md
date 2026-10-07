@@ -45,6 +45,10 @@ cuda-sgemm/
   `--dbuf`（deep/dsk smem 双缓冲，默认 1；dbuf1 全尺寸 +3~14%，AR010 T004 实测固化）、
   `--rv2`（swsk/wsk/dsk 归约路径，默认 0=末片直写 C；1=v2 ILP2 / 3=v3 ILP4+流式
   （AR010 实测 v3 仅省 1.5μs，归约流量地板 355 GB/s，负结果归档））、
+  `--waves`（streamk 波数 W，默认 0=auto→恒 1；AR011 T005 sweep 实测 W=1 全尺寸最优、
+  W>1 单调负，非默认值保留作消融复现）、
+  `--persist`/`--hit`（dsk/streamk L2 persistence 钉 C，默认 0；TU104 sm_75 无此能力，
+  AR011 T003 实证 N/A，保留作能力解锁后复现）、
   `--rounds N`（多轮门控统计，默认 1，0 → CLI_ERROR）。
   非默认参数跑出的数据必须经 `SGEMM_CSV` 环境变量分流到独立 CSV，禁止污染主 `performance.csv`。
 

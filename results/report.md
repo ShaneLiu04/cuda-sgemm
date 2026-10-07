@@ -518,7 +518,7 @@ dsk = deep + split-K（--sk）+ **末片直写 C**（--rv2 0 默认）：前 sk-
 | 交付 | 内容 | 证据 |
 |------|------|------|
 | deep（Kernel 9） | 深寄存器分块主核；<DBUF> 模板实例 dbuf0=247r/12416B、dbuf1=241r/24832B 全 0 spill | 146/146；memcheck/racecheck 0；build.log ptxas 逐实例审计 |
-| dsk（K9 变体） | deep + split-K；	emplate <int DBUF, int LAST_DIRECT> 编译期实例化（4 实例 247/247/243/243 regs 全 0 spill）+ Out 指针下沉回写段 | **bitwise 21/21**（BK=8 同切分 + 单一归约入口 + 三重锚点 + 确定性双跑） |
+| dsk（K9 变体） | deep + split-K；template <int DBUF, int LAST_DIRECT> 编译期实例化（4 实例 247/247/243/243 regs 全 0 spill）+ Out 指针下沉回写段 | **bitwise 21/21**（BK=8 同切分 + 单一归约入口 + 三重锚点 + 确定性双跑） |
 | 末片直写 | 归约 47→43μs（同会话 +1.1%）；加法链同序保逐位等价 | paired_ar010.csv vs paired_ar010_predirect.csv |
 | ptxas 重排修复 | 运行时分支参数诱发 247/241→243 重排（main -4.9%）；模板化+指针下沉后复原，dsk 热态探针 **6312-6321 GF** 历史最佳 | build.log（T007d4 四实例审计） |
 | auto v3 | dispatch 三代：≤4→swsk6 / ≤64→swsk3 / ≤128 带判（1024³→dsk3） / >128→deep（2048³+） | G4'' PASS（4/6 尺寸 +8.6~+19.9% %peak）；保真 A-B-A-B 10/12 ≤0.6pp |
@@ -550,8 +550,9 @@ C 读 L2 命中被 A/B 流驱逐）→ ptxas 重排修复（+3.4% main 复原 24
   ——与 AR006/008/009 构成完整负结果档案（paper §5.4 六条）；
 - **%peak 不变量**：钟频线性 boost 实证（6296@1620 → 7276@1950，误差 0.1%）；DVFS 双域
   （重核 1920-1950 / 小突发 1620 同会话并存，三次独立验证；cuBLAS 8377/8432 双簇即此效应）；
-- **交付文档**：esults/paper_sgemm_turing.md（CCF-A 体例全量证据链）、
-  esults/interview_narrative.md（STAR 叙事 + 数字锚点）。
+- **交付文档**：
+results/paper_sgemm_turing.md（CCF-A 体例全量证据链）、
+results/interview_narrative.md（STAR 叙事 + 数字锚点）。
 
 ---
 
@@ -567,7 +568,97 @@ C 读 L2 命中被 A/B 流驱逐）→ ptxas 重排修复（+3.4% main 复原 24
 | 全 kernel 阶梯 v4（六尺寸 winner 高亮） | fig27_ladder_v4 | paired_ar010.csv |
 | auto v3 dispatch 保真（A-B-A-B 交替） | fig28_auto_v3 | auto_ar010.csv（24 行） |
 
-原始数据：esults/deep_ar010.csv、esults/g2_ar010.csv、esults/g2_boost_ar010.csv、
-esults/paired_ar010.csv（+paired_ar010_predirect.csv 直写前基线）、esults/auto_ar010.csv、
-esults/compare_ar010_paired.md（五门 v4 终判表）、esults/paper_sgemm_turing.md、
-esults/interview_narrative.md。
+原始数据：
+results/deep_ar010.csv、
+results/g2_ar010.csv、
+results/g2_boost_ar010.csv、
+
+results/paired_ar010.csv（+paired_ar010_predirect.csv 直写前基线）、
+results/auto_ar010.csv、
+
+results/compare_ar010_paired.md（五门 v4 终判表）、
+results/paper_sgemm_turing.md、
+
+results/interview_narrative.md。
+
+## 13. AR011：Stream-K 统一调度攻坚（Kernel 10 streamk + auto v4 + 五门 v5）
+
+**动机**：AR010 遗留两个波几何缺口——1024³ dsk 96 blocks = 2 精确波仍含 reduce
+第二核空隙（74.77% 刀锋，缺口仅 1.05μs）；2048³ deep 128 tiles = 2.67 波尾空转
+（82.6%）。streamk（Kernel 10）= **tile-major 工作包统一调度**：每 block 顺序认领
+(tile, k-区间) 工作包（SLOTS=ceil(U/nt)+1 几何）+ 票据累加确定性归约（单线程
+atomicAdd，跨 launch 流序自清洁——T002 修复 AR010 票据 bug）+ solo 快路径（单
+block 独占 tile 直写 C 免票据）+ TOT<48 deep 旁路 + 融合确定性归约（末包 block
+归约自身部分积）。计算主体 deep 逐拷贝 + W producer 参数化（--waves）。
+
+**交付**：
+
+| 交付 | 内容 | 证据 |
+|------|------|------|
+| streamk（Kernel 10） | tile-major + 票据 + solo + 旁路 + 融合归约；255 regs 0 spill | 163/163；memcheck 0/0 @1024³/2048³（T008）；racecheck 0 |
+| 票据 bug 修复 | 单线程 atomicAdd 变体（跨 launch 流序自清洁） | 套件 160/160（T002 Red→Green）；sanitize 四连 0 |
+| FR2 L2 persistence | TU104 sm_75 无 cudaAccessPolicyWindow persistence——能力墙实证 | T003 N/A 收口（environment.md §8）；--persist/--hit 保留复现 |
+| FR3 消融 | deep BPF/PHASE 双因子模板十实例全 0 spill | 双因子皆负（1024³ phase -0.82% / 2048³ -2.07%）；闭环 #6；fig31 |
+| W sweep | canonical 六尺寸 × W{1..8} × 3 轮 = 165 行 | **W=1 全尺寸最优、W>1 单调负**；auto W 校准恒 1；闭环 #7；fig32 |
+| auto v4 | 尾波区带吸收（1<t/48≤4 非整波→streamk W=1）+ 几何 sk 公式 | verbose 决策表 10/10；163/163 零回归；闭环 #8；fig33 |
+| E-A 替代归因（P0 分支） | 四分类：同相停顿/步首依赖排除、尾 tile/波量化确认、barrier 歪斜未决 | e_a_alternative.md（2 排除/1 确认/1 未决超下限） |
+| 五门 v5 | canonical 8 行/轮 ×3 + 补充 7 行/轮 ×3 = 207 行，cublas 首末双锚 | paired_ar011.csv + compare_ar011_paired.md + fig34 |
+
+**五门 v5 判定（4 PASS / 3 MISS，两比例门 0.10-0.15pp 刀锋）**：
+
+| 门 | 判定 | 数据 |
+|----|------|------|
+| G1@1024³ ≥75% | **MISS** | auto_v4（dsk 路径）6279.5 / cuBLAS 8383.4 = **74.90%**（逐轮 74.85-74.95；差 0.10pp ≈ 0.4μs） |
+| G6@2048³ ≥85%（新门） | **MISS** | streamk W=1 8773.3-8784 / 末锚 10341.9 = **84.85%**（逐轮末锚比 84.93/84.84/84.89；差 0.15pp ≈ 3.2μs；r1 冷锚 9278 排除——误用则伪 PASS +9.8pp） |
+| G1@512³ 回归 ≥75.14% | **PASS（边缘）** | 75.01%（r1 75.20 达线；-0.13pp = 会话噪声，swsk 零改动且 4274.4 落于 AR010 自身轮值域 [4270.1, 4291.9]） |
+| G2@256³ 钟态匹配 | **PASS** | swsk %peak 15.58（+10.3% like-for-like）；1860 投影 1781.2 ≥ 1618.2；反超 cuBLAS 122.2% |
+| G3@4096³ ≥7.0TF | **PASS** | deep 9058.1（%peak 78.0，AR010 68.1 → +9.9pp）；auto 保真 ≤0.77pp |
+| G4''' 增量 ≥4/6 +2% | **MISS** | 仅 2048³ +2.36%（1/6，尾波区带兑现）；无 < -2% 回退 |
+| G5''' 保真 ≤2pp | **PASS** | canonical 17/18 ≤0.77pp（256³ r1 一次性瞬态披露，AR010 同源已知）；轮间极差 median 0.72pp；补充尺寸以 T006 冷却对为准 |
+
+### 13.1 G1@1024³ 责任链闭合（74.77% → 74.90% 的完整因果归档）
+
+L2 钉 C 能力墙 N/A（T003，FR2）→ BPF/PHASE 双因子负（T004，"同相停顿"假说否定：
+multicast 友好被错相破坏）→ streamk@1024³ = dsk 的 87%（T005：1 block/SM MLP 减半
++ split 税，融合 393μs vs 297+41=338μs）→ E-A 归因（T007）：缺口 84.8μs =
+main ~42μs + reduce ~43μs 结构性；barrier 歪斜假设未决（需 ncu，P0 解锁后复核）。
+**门线不放宽**；上行空间仅存 P0 解锁与算法级重设计（入 backlog）。
+
+### 13.2 尾波税兑现与"多波精确填充"假说否定（G6 主线）
+
+deep 82.50% → streamk W=1 84.85% = **+2.35pp 机制兑现**（srs G6 备注的理论尾波
+-11% 部分回收，余量为 split 结构税）。**"多波精确填充"假说否定**：W=2 整波
+（2048³ 96 blocks = 2 精确波）8355 GF < deep 2.67 波 8542 GF——赢面不在多波精确
+填充，而在 **W=1 tile 聚合**（48 blocks 恒 1 波 + solo 快路径免票据免 P 回合）。
+512³ W=1 1777 vs swsk 4273（U=11 P 税爆炸）佐证 P 缓冲税尺度；4096³ deep 守擂
+（8994 > 8919）。G4''' 仅 1/6 达标 = 尾波区带收益集中于 2048³/1024×2048 一带。
+
+### 13.3 负结果与方法学沉淀
+
+- **负结果**：FR2 L2 persistence（能力墙 N/A）、FR3 BPF/PHASE（双因子皆负）、
+  W>1 多波（单调负）、G4''' 增量（1/6）、归约 rv2/v3 沿 AR010 归档——AR011 五条
+  负结果全量归档 bottleneck_analysis.md 闭环 #6/#7/#8；
+- **K=4096 时钟制度纪律（协议级）**：冷启动 1620 vs in-seq 热 1920-1935 MHz
+  （dsk 差 -13%）；run-1 "4096×256 盲区" 为末位行降频伪影（gpu_state 列留证，
+  已撤回）——同轮同制度才可比，保真验证须逐行冷却（environment.md §9）；
+- **锚敏感性判门纪律**：2048³ cublas r1 冷锚 9278 vs 稳态末锚 10337-10342——
+  比例门以稳态锚为分母、方向从严（误用冷锚即伪 PASS +9.8pp）。
+
+---
+
+## 附录 E：AR011 图表索引（结论 → 图 → 数据，三链可溯）
+
+| 结论 | 图表 | 数据源 |
+|------|------|--------|
+| streamk 结构（工作包/票据/solo/旁路/融合归约） | fig29_streamk_structure | 设计文档 + smoke 数据 |
+| FR3 消融：BPF/PHASE 双因子皆负（假说否定） | fig31_lat_cover | lat_cover_ar011.csv |
+| W sweep：W=1 全尺寸最优、W>1 单调负；1024³ 87% 差距 | fig32_streamk_sweep | streamk_ar011.csv（165 行） |
+| auto v4 dispatch 表 + G4''' MISS + 补充尺寸首测 | fig33_auto_v4 | auto_ar011.csv（24 行） |
+| 五门 v5 终判（比例门刀锋 + 锚敏感性 + 三代演进） | fig34_v5_verdict | paired_ar011.csv（207 行） |
+
+原始数据：results/lat_cover_ar011.csv、
+results/streamk_ar011.csv、
+results/auto_ar011.csv、
+results/paired_ar011.csv、
+results/compare_ar011_paired.md（五门 v5 终判表）、
+profile/streamk_ar011/e_a_alternative.md（E-A 替代归因）。

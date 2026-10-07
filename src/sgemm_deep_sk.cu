@@ -13,8 +13,10 @@
 // 寄存器预取流水、DBUF 实例选择全部继承，本文件不重复实现。
 //
 // 归约（确定性）：默认（--rv2=0）走 T007 last-slice-direct——主体末片直写
-// C、P 片 __stwt 写穿，归约 C = P[0..sk-2]+C（链序与全 P 归约 v1 逐位一致，
-// P 流量 12→8MB@1024³sk3，归约 45→~33μs）；--rv2≠0 回退旧全 P 路径
+// C、P 片统一默认 store（__stwt 写穿已实测回退：main +16μs 反压损失、
+// 无归约收益，见 sgemm_deep.cu 头注与 AR010 T007 消融），归约
+// C = P[0..sk-2]+C（链序与全 P 归约 v1 逐位一致，P 流量 12→8MB@1024³sk3，
+// 归约 47→43μs 实测，流量地板 355 GB/s）；--rv2≠0 回退旧全 P 路径
 // （detail::swsk_reduce v1/v2/v3，swsk/wsk 单一数值路径共享）。
 //
 // workspace：冻结签名下的既定取舍（AR008 design §4.2.1 先例）——静态
@@ -105,8 +107,9 @@ void sgemm_dsk(const float* A, const float* B, float* C,
         cudaEventRecord(ev0);
     }
 
-    // AR010 T007 last-slice-direct（默认 --rv2=0）：末片直写 C（P 片
-    // __stwt 写穿），归约读 sk-1 片 P + 热 C——P 流量 12→8MB@1024³sk3。
+    // AR010 T007 last-slice-direct（默认 --rv2=0）：末片直写 C（P 片统一
+    // 默认 store——__stwt 实测回退），归约读 sk-1 片 P + 热 C——P 流量
+    // 12→8MB@1024³sk3（实测归约 47→43μs，地板 355 GB/s）。
     // --rv2≠0 = 旧全 P 消融路径（v1/v2/v3 归约，行为与 AR008-T006 逐字一致）
     const bool direct = (sgemm::g_reduce_ilp2 == 0);
 

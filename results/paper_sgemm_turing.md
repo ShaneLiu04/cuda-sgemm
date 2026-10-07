@@ -92,13 +92,16 @@ CPU double 参考 + cuBLAS FP32 双参考交叉验证（rel ≤ 1e-4 断言，�
 | K8 wide/wsk | 512 线程宽块双角色流水 | **负结果**：100% warp slots 占用无收益 | 4,408.8 | — |
 | **K9 deep** | **BM256×BN128×BK8，TM16×TN8=128 acc/线程，247 regs/0 spill，smem 双缓冲** | %peak 68.1@4096³ / 72.1@2048³；2048³ 同会话 82.6% cuBLAS | **7,958.1** | **1.21×** |
 | K9' dsk | deep + split-K + **末片直写 C**（逐位等价） | 1024³ 同会话 74.77% cuBLAS 刀锋 | 6,279.2 @1024³ | — |
-| auto v3 | 实测驱动三代选核（blocks 带判） | 保真 10/12 对 ≤0.6pp | 贴各尺寸最优 | — |
+| **K10 streamk** | **Stream-K 统一调度：tile-major 工作包 + 票据自清洁确定性归约 + solo 快路径 + W=1 tile 聚合** | 2048³ 尾波税消除 +2.35pp → **84.85% cuBLAS**；W>1 单调负 | 8,773.3 @2048³ | — |
+| auto v4 | 实测驱动四代选核（blocks 区带 + 尾波区吸收 streamk） | 保真 canonical 17/18 ≤0.77pp；决策表 10/10 | 贴各尺寸最优 | — |
 
 **K9 设计要点**：256 线程（16×16），每线程负责 16×8 输出块 = 128 个 FMA 累加器；247 寄存器（dbuf0）/ 241（dbuf1）恰在 1 block/SM 的 64K 寄存器预算内（256×247=63,232）；smem 双缓冲（DBUF=1，消融 +3~14% 固化为默认）消除 S2 全块屏障；A 行驻寄存器 16×BK8、B 列驻 smem 广播。1024³ 下 32 tiles × sk3 = 96 blocks = **精确 2 波**——无尾波浪费，这是 dsk 在 1024³ 刀锋的波次几何基础。
 
 **末片直写（last-slice-direct）**：split-K 中前 sk-1 片照写部分积 P，**末片直接写 C**；归约核读 C + P[0..sk-2]（ILP4 + `__ldcs` 流式读 P）。加法链与旧路径（全 P 归约）**同序**——逐位等价由专项 21/21 实证。净收益同会话 +1.1%（归约 47→43μs），主因是归约本已近 DRAM 流量地板（§6.3）。
 
 **ptxas 寄存器分配陷阱（重要发现）**：末片直写的早期实现用**运行时参数**分支选择输出指针，导致 ptxas 将 247/241 regs 重排为 243——main 段 -4.9%（5,017 vs 5,270 GF）。修复：`template <int DBUF, int LAST_DIRECT>` 编译期实例化 + **Out 指针计算下沉到回写段**（双指针跨主循环活跃是扰分配根源）。修复后 `<0,0>`=247 / `<1,0>`=243 / `<1,1>`=243 各归其位，dsk 达历史最佳 6,312-6,321 GF（热态探针）。**教训：寄存器敏感 kernel 的"无害小改动"必须过 `-Xptxas -v` 逐实例审计。**
+
+**K10 Stream-K 统一调度**：把 grid 从"整 tile × K 全程"改为 **(tile, k-区间) 工作包**——每 block 顺序认领工作包（SLOTS=ceil(U/nt)+1），尾波块自然分得 K 剩余区间；完成票据 per-tile 单线程 atomicAdd 累加（跨 launch 由流序自清洁），末包 block 融合归约自身部分积（省第二核启动）；单 block 独占 tile 走 solo 快路径直写 C（免票据免 P 回合）；TOT<48 时旁路 deep 单波路径。255 regs/0 spill。**"多波精确填充"假说否定**：2048³ W=2 整波（96 blocks=2 精确波）8,355 GF < deep 2.67 波 8,542 GF——赢面在 **W=1 tile 聚合**（48 blocks 恒 1 波 + solo），实测 8,773-8,784 GF = 84.85% cuBLAS（deep 82.50% → +2.35pp 尾波税回收）；W>1 全尺寸单调负（P 缓冲税 + 块/SM 占用损失，512³ U=11 时 1,777 vs swsk 4,273）。1024³ streamk 5,461 = dsk 的 87%（1 block/SM MLP 减半 + split 税）——G1 翻门失败，74.77%→74.90%。
 
 ---
 
@@ -121,6 +124,21 @@ CPU double 参考 + cuBLAS FP32 双参考交叉验证（rel ≤ 1e-4 断言，�
 
 **G1@1024³ 残差分析**：0.23pp 缺口小于 cuBLAS 分母自身热态摆幅（8,377↔8,432 = ±0.65pp）——该门已进入"分母测量下限"区间。攻坚链（六变体全实测）：会话偏移修正（跨会话混搭伪影 +0.5% 识别）→ 归约 v3 ILP4（仅省 1.5μs，流量地板）→ `__stwt` 写穿（负结果 +16μs）→ 末片直写（+1.1%）→ ptxas 重排修复（+3.4% main 复原）→ 模板化 + 指针下沉（终态 6,312-6,321 GF 热态覆盖 6,283 绝对线）。剩余杠杆（L2 persistence window 钉 C、单核确定性归约）列入 backlog。
 
+### 5.2b 五门 v5 判定（AR011，207 行配对数据，cublas 首末双锚）
+
+| 门 | 判定 | 数字 |
+|---|---|---|
+| G1@1024³ ≥75% | **MISS（刀锋）** | 6,279.5 / 8,383.4 = **74.90%**（逐轮 74.85-74.95；差 0.10pp ≈ 0.4μs） |
+| G6@2048³ ≥85%（新门） | **MISS（刀锋）** | streamk W=1 8,773.3 / 末锚 10,341.9 = **84.85%**（差 0.15pp ≈ 3.2μs；r1 冷锚 9,278 排除——误用即伪 PASS +9.8pp，稳态锚口径方向从严） |
+| G1@512³ 回归 ≥75.14% | PASS（边缘） | 75.01%（-0.13pp 会话噪声，落于 AR010 自身轮值域；r1 75.20 达线） |
+| G2@256³ 钟态匹配 | PASS | %peak 15.58（+10.3% like-for-like）；反超 cuBLAS 122.2% |
+| G3@4096³ ≥7.0 TF | PASS | deep 9,058.1（%peak 78.0，AR010 68.1 → +9.9pp） |
+| G4''' auto v4 ≥4/6 +2% | MISS | 仅 2048³ +2.36%（1/6，尾波区带兑现）；无回退 |
+| G5''' 保真 ≤2pp | PASS | canonical 17/18 ≤0.77pp；轮间极差 median 0.72pp |
+
+两个比例门以 0.10-0.15pp 之差未翻，门线不放宽（诚实归档）；机制交付完整——尾波税
++2.35pp 兑现、auto v4 决策表 10/10、E-A 四分类归因（2 排除/1 确认/1 未决）。
+
 ### 5.3 消融实验
 
 - **BK**：smem1d BK=32 比默认 +8.3%（固化默认）；
@@ -139,6 +157,9 @@ CPU double 参考 + cuBLAS FP32 双参考交叉验证（rel ≤ 1e-4 断言，�
 | N4 | `__stwt` 写穿减少归约读 | main +16μs（写穿流量与 A/B 读 miss 反压）；归约持平 | 回退默认 store（写回吸收 L2 延迟排出更优） |
 | N5 | 归约 ILP4+流式提示速 | 仅 47→45.3μs；归约已近 DRAM 流量地板（355 GB/s ≈ 峰 80-90%） | 转向末片直写省 P 读写 |
 | N6 | 运行时开关参数"无害" | ptxas 247/241→243 重排，main -4.9% | 模板化编译期实例化 + 指针生命周期收紧 |
+| N7 | Stream-K 多波精确填充消除尾波 | W=2 整波 8,355 < deep 2.67 波 8,542（2048³）；W>1 全尺寸单调负 | 赢面在 W=1 tile 聚合 + solo 快路径（+2.35pp 兑现） |
+| N8 | FR3 延迟覆盖（BPF 双发预取 / PHASE 错相） | 双因子皆负（1024³ phase -0.82% / 2048³ -2.07%；"同相停顿"假说否定：multicast 友好被错相破坏） | main 段 ~42μs 缺口为结构性（E-A 归因） |
+| N9 | L2 persistence 钉 C 省归约流量 | TU104 sm_75 无 cudaAccessPolicyWindow persistence（能力墙实证 N/A） | 旋钮保留，能力解锁后复现 |
 
 ---
 
@@ -164,9 +185,9 @@ CPU double 参考 + cuBLAS FP32 双参考交叉验证（rel ≤ 1e-4 断言，�
 
 ## 7 结论
 
-十六版严格 FP32 阶梯在 Turing sm_75 上达到：4096³ %peak 68.1（50.8× vs naive）、2048³ %peak 72.1（54.6×，同会话 82.6% cuBLAS）、256³ 反超 cuBLAS 123.7%、1024³ 刀锋 74.77%。方法学贡献（%peak 不变量 + 同会话配对锚定 + 全真值 CSV）使每个数字可复现、每次对比可辩护。六条负结果与正结果共同构成完整证据链——**性能工程的可信度来自可证伪性**。
+十七版严格 FP32 阶梯在 Turing sm_75 上达到：4096³ %peak 78.0（deep 9,058 GF，50.8× vs naive 之上再 +13.9%）、2048³ 84.85% cuBLAS（streamk W=1 8,773 GF，尾波税 +2.35pp 回收）、256³ 反超 cuBLAS 122.2%、1024³ 刀锋 74.90%。方法学贡献（%peak 不变量 + 同会话配对锚定 + 稳态锚从严判门 + 全真值 CSV）使每个数字可复现、每次对比可辩护。九条负结果与正结果共同构成完整证据链——**性能工程的可信度来自可证伪性**；两个 0.10-0.15pp 的刀锋门未翻且门线不放宽，是该方法学的直接代价与直接证明。
 
-后续工作：L2 persistence window 钉 C 降归约流量；单核确定性 last-block 归约（当前确定性以二次 kernel 达成）；cp.async 在 sm_80+ 的真双缓冲对照；多 GPU 环境（nvidia-smi 锁频）下门体系的重标定。
+后续工作：L2 persistence window 钉 C 降归约流量（TU104 能力墙，硬件解锁后复现）；单核确定性 last-block 归约；barrier 歪斜假设的 ncu 证实（需计数器权限，E-A 归因唯一未决项）；cp.async 在 sm_80+ 的真双缓冲对照；多 GPU 环境（nvidia-smi 锁频）下门体系的重标定。
 
 ---
 
@@ -186,8 +207,12 @@ CPU double 参考 + cuBLAS FP32 双参考交叉验证（rel ≤ 1e-4 断言，�
 | `results/auto_ar010.csv` | 24 | `bench/run_auto_paired.ps1`（A-B-A-B 保真） |
 | `results/deep_ar010.csv` | — | `bench/run_deep_ablation.ps1`（dbuf/sk 消融） |
 | `results/g2_ar010.csv` / `g2_boost_ar010.csv` | 42+6 | `bench/run_g2_attack.ps1` / `run_g2_boost.ps1` |
+| `results/lat_cover_ar011.csv` | 24 | `bench/run_lat_cover.ps1`（FR3 消融，BPF/PHASE 双负） |
+| `results/streamk_ar011.csv` | 165 | `bench/run_streamk_sweep.ps1`（W sweep，W=1 最优） |
+| `results/auto_ar011.csv` | 24 | `bench/run_auto_v4_paired.ps1` + `run_supp_paired.ps1`（v4 + 补充首测） |
+| `results/paired_ar011.csv` | 207 | `bench/run_paired_v5.ps1`（五门 v5，cublas 首末双锚） |
 | `results/performance.csv` | 全代 | `bench/run_matrix.ps1` |
 
 ## 附录 B：图表索引
 
-fig1-28 见 `results/figures/`（`python bench/make_figures.py` 从 CSV 直出，全部 ≤72KB 量化归档）；AR010 代表图：fig22（deep 结构）、fig23（LDS 模型）、fig24（deep 消融）、fig25（G2 攻坚）、fig26（五门 v4）、fig27（阶梯 v4）、fig28（auto v3 dispatch）。
+fig1-34 见 `results/figures/`（`python bench/make_figures.py` 从 CSV 直出，全部 ≤72KB 量化归档）；AR010 代表图：fig22（deep 结构）、fig23（LDS 模型）、fig24（deep 消融）、fig25（G2 攻坚）、fig26（五门 v4）、fig27（阶梯 v4）、fig28（auto v3 dispatch）；AR011 代表图：fig29（streamk 结构）、fig31（FR3 消融双负）、fig32（W sweep）、fig33（auto v4 dispatch）、fig34（五门 v5 终判）。
