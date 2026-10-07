@@ -22,6 +22,7 @@ r"""push_min_pack.py — 企业代理拦截 git push 时的最小包直推工具
 - 凭据文件用后即删；密码不出现在任何输出/日志。
 """
 import subprocess, sys, os, io, re
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # PS5.1 GBK 控制台防崩（T002 会话实证）
 
 GIT = r"git"  # 调用方需保证 PATH（PS 5.1 下先 $env:Path 加 Git\bin）
 PROXY = os.environ.get("PUSH_PROXY", "http://proxyhk.huawei.com:8080")
@@ -80,7 +81,7 @@ def main():
           "curl.exe -s -x {} --proxy-ntlm -U : -X POST "
           "'https://{}/{}/git-receive-pack' "
           "-H 'Content-Type: application/x-git-receive-pack-request' "
-          "-H 'User-Agent: git/2.56.0.windows.2' -u \"$u:$p\" "
+          "-H 'User-Agent: git/2.56.0.windows.2' -u \"${{u}}:${{p}}\" "
           "--data-binary \"@{}\" -o '{}' -w 'HTTP %{{http_code}}'".format(
               cf, PROXY, host, repo, req,
               os.path.join(tmp, "pmp_resp.bin")))

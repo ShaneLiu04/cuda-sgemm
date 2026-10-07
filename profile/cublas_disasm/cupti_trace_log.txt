@@ -1,0 +1,5 @@
+# cupti_trace | CUPTI_API_VERSION=23
+[cublas@512x512x512] launches=8 name=volta_sgemm_64x64_nn grid=(8,8,3) block=(64,1,1) regs=126 smem=8448B dur_med=46.5us dur_min=46.2us dur_max=47.2us
+[cublas@1024x1024x1024] launches=8 name=volta_sgemm_128x64_nn grid=(8,16,3) block=(128,1,1) regs=122 smem=12544B dur_med=253.9us dur_min=253.1us dur_max=256.9us
+[cublas@2048x2048x2048] launches=8 name=volta_sgemm_128x128_nn grid=(16,16,2) block=(256,1,1) regs=118 smem=16640B dur_med=1871.5us dur_min=1870.6us dur_max=1875.2us
+[cublas@4096x4096x4096] launches=8 name=volta_sgemm_128x64_nn grid=(32,64,1) block=(128,1,1) regs=122 smem=12544B dur_med=14586.7us dur_min=12360.7us dur_max=16983.9us

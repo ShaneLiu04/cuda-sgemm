@@ -13,7 +13,7 @@
 | ID | 任务描述 | 依赖 | 状态 | 完成记录 |
 |----|---------|------|------|---------|
 | T001 | Red：`--swz {0,1}` / `--swzg {4,8,16}` / `--skred {0,1}` 旋钮注册（common.h CLI + main.cu + 跨 kernel note 语义：--swz 限 deep/dsk/streamk、--skred 限 streamk、--swzg 随 --swz 1）+ suite 注册变体槽位（deep_swz1/dsk_swz1/streamk_swz1/streamk_skred1，fn=nullptr 红观察）+ CLI 校验用例（--swz 2/--skred 7 → CLI_ERROR） | - | passing | 2026-10-07。变体槽位改为 **wrapper marker 探针**方案（沿 AR011 --waves T001 绑定先例，避免 17→21 注册表膨胀）：g_swz/g_swzg（deep.cu 定义）/g_skred（streamk.cu 定义）+ g_launch_swz/g_launch_skred 快照探针（sgemm_kernels.h extern，wrapper launch 处写入）+ main.cu [note] 接线 + suite 2 探针（marker 快照断言）+ 2 旋钮中立锚（swz1 vs swz0 / skred1 vs skred0 逐位——T003/T005 Green 后 remap 链序不变/归约链≡F2 → 锚恒成立，永久保留）。Red：改前二进制 `--swz 1` = `[CLI_ERROR] unknown argument`。Green IT：--swz 2/--swzg 5/--skred 7 → CLI_ERROR ✓；naive 跨域 → 双 [note] ✓；--swzg 16 单用 → [note]（effective with --swz 1 only）✓。构建 0 spill（deep 243-247/streamk 255 regs 不变，marker 纯 host 侧零寄存器税）；套件 **167/167 ALL PASS**（163+2 探针+2 锚，9 bitwise/rel 锚） |
-| T002 | FR1 E-B 反汇编流水线：nsys profile（trace=cuda）跑 cuBLAS bench @1024³/2048³/4096³ 提 kernel 名与 launch config → `cuobjdump -xelf` 提 cubin → SASS → `tools/cublas_disasm.py` 特征提取（寄存器/smem/LDGSTS 排布/FFMA:LDS/blockIdx 运算模式=swizzle 判定/unroll）→ `profile/cublas_disasm/report.md` 逐项对照我方 deep；失败链路逐级降级并记负结果（不阻塞主线） | - | pending | |
+| T002 | FR1 E-B 反汇编流水线：nsys profile（trace=cuda）跑 cuBLAS bench @1024³/2048³/4096³ 提 kernel 名与 launch config → `cuobjdump -xelf` 提 cubin → SASS → `tools/cublas_disasm.py` 特征提取（寄存器/smem/LDGSTS 排布/FFMA:LDS/blockIdx 运算模式=swizzle 判定/unroll）→ `profile/cublas_disasm/report.md` 逐项对照我方 deep；失败链路逐级降级并记负结果（不阻塞主线） | - | passing | 2026-10-07。**降级链**：L0 nsys 双份二进制负结果（无 admin 环境 CLI→后端 IPC 静默失败，whoami 最小用例亦不可采集）→ L1 进程内 CUPTI activity API（tools/cupti_trace.cu，新版 RegisterCallbacks 缓冲对 API；与 nsys 同数据源、零权限）✓ → L2 cuobjdump+nvdisasm 组件包官方 redist 下载（sha256 校验）✓。**Level-1 结构**（CUPTI 实测 4 尺寸）：512³=volta_sgemm_64x64_nn(8,8,z3,64thr,126regs)；1024³=128x64_nn(8,16,z3,128thr,122regs)；2048³=128x128_nn(16,16,z2,256thr,118regs)；4096³=128x64_nn(32,64,z1)。z=K 分片（kernel 内信号量串行归并，无独立 reduce launch、无 atomics）；CTAID 线性映射无 swizzle；每线程恒 64 输出（缩线程不缩 tile 深度）；全家族 LDGSTS=0（无 cp.async）；118-126 regs → 2 blocks/SM（我方 deep 243regs 恒 1）。**Level-2 指令构成**：cuBLAS FFMA=520/LDS=60（FFMA:LDS 8.67，连段 58）vs 我方 deep 1024/48（21.33，连段 171）——我方计算密度优、cuBLAS 占用优；4096³ 双方满波差距 4-6%（epilogue STG 32 vs 9 为残差候选）。**主线结论**（report §5）：cuBLAS 无块序 swizzle（G7 消融照做）；1024³ 差距主因=波填充/K 分片非 FFMA 效率（支持 T005 SK_RED、反对缩 tile）；工具坑（PS 重定向 UTF-16LE/无 BOM 中文注释 CP936 幻影错/LNK1104 非 ASCII 输出路径）与 nsys 负结果已沉淀 environment.md §4 与 report §1 |
 | T003 | Green：deep/dsk swizzle（SWZ 头部 remap，主循环零扰动；ptxas 增量 ≤2 寄存器硬门 + 0 spill）+ bitwise 锚（tile 独立 → 链序不变）+ 任意 M/N/K 边界谓词路径回归 | T001 | pending | |
 | T004 | streamk swizzle + 消融数据：`--swz {0,1} × --swzg {4,8,16} × {2048³,4096³}` like-for-like（v4+ 协议，SGEMM_CSV 分流）+ canonical 全尺寸回归 + **G7 判定**（≥+1.0% @2048³/4096³ 且 512³/1024³ 不回退 >0.5pp）+ fig35（swizzle 消融三联） | T003 | pending | |
 | T005 | FR3 SK_RED separate（design §4.1 问题 1 方案 B；half-K cover 已证伪弃选）：streamk 双 epilogue——`--skred 1` 下 cover tile 免票据免归并直退 + cover-reduce kernel（冷 C = 0+P[b_lo..b_hi] 升序 __ldcs，链≡F2）+ host cover 清单 + bitwise 锚（skred0 vs skred1 同 C 逐位）+ 1024³/512³ 消融 vs dsk/streamk_w1/deep/cublas 同会话 + **G1 判定**（≥6288 GF 翻门或诚实负结果）+ fig36 | T001 | pending | |
@@ -40,6 +40,17 @@
   快照、行为仍现状（中立锚即此事实的显式断言）；T003/T004/T005 Green 接入后生效。
   变体槽位方案由注册表膨胀改为 marker 探针（注册表保持 17，跨 kernel bitwise 走
   run_dump 旋钮就地设置，AR011 锚区同模式）。
+- 2026-10-07（T002 完成会话）：E-B 全链路落地——nsys 负结果（环境不可用，非 ASCII
+  路径 protobuf 失败 + ASCII 下不拉起 app）→ 进程内 CUPTI activity（cupti_trace.cu，
+  签到 cublasLt volta_sgemm 家族）→ cuobjdump/nvdisasm 官方组件包下载（redist json
+  索引 + sha256 校验，装配 csg-tools\cuda\）→ SASS 特征提取（cublas_disasm.py）→
+  report.md 六节（降级链/Level-1/Level-2/对照解读/主线结论/复现清单）。工具链增补
+  与 nsys 负结果同步 environment.md §4。**E-B 核心情报**：cuBLAS 恒 64 输出/线程 +
+  118-126 regs + 2 blk/SM + z 维 K 分片（kernel 内信号量归并）+ 无 cp.async + 无
+  swizzle；我方 deep 计算密度 2.5×（FFMA:LDS 21.33 vs 8.67）但恒 1 blk/SM。1024³
+  差距归因波填充/K 分片而非发射效率——T005 SK_RED 主攻方向获得外部证据支持。
+  交付物：tools/cupti_trace.cu、tools/build_cupti_trace.cmd、tools/cublas_disasm.py、
+  profile/cublas_disasm/{report.md, 4×.sass, cupti_trace_log.txt}。
 
 ## 门控记录
 

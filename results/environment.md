@@ -66,12 +66,19 @@
 | MSVC Build Tools（cl.exe 14.44.35207 + WinSDK 10.0.26100） | VS 2022 工具链 | PortableBuildTools v2.10.2（微软官方包源，免管理员解包） | `C:\Users\l30086046\csg-tools\msvc\`（入口 `devcmd.bat`） |
 | Nsight Compute（ncu.exe） | 2024.2.0.0 | NVIDIA 官方 redist zip | `C:\Users\l30086046\csg-tools\cuda\ncu-root\...\target\windows-desktop-win7-x64\` |
 | compute-sanitizer | 2024.2.0.0 | NVIDIA 官方 redist zip | 同上目录 |
+| CUPTI SDK（头/导入库/DLL，进程内 activity 采集） | 12.5.39 | NVIDIA 官方 redist zip（cuda_cupti-…-archive.zip，AR012 T002 增补，sha256 见 profile/cublas_disasm/report.md §0） | `C:\Users\l30086046\csg-tools\cuda\cuda_cupti-…-archive\` |
+| cuobjdump | 12.5.39 | 同源组件 zip（AR012 T002 增补） | `C:\Users\l30086046\csg-tools\cuda\cuda_cuobjdump-…-archive\bin\` |
+| nvdisasm | 12.5.39 | 同源组件 zip（AR012 T002 增补；cuobjdump --dump-sass 内部调用需入 PATH） | `C:\Users\l30086046\csg-tools\cuda\cuda_nvdisasm-…-archive\bin\` |
 | git | 2.50.1.windows.1 | MinGit portable（git-for-windows GitHub release） | `C:\Users\l30086046\csg-tools\git\` |
 | cmake | 4.4.2 | 系统已有 | PATH |
 | 构建 junction | — | mklink /J（绕过项目路径非 ASCII 字符【】对 nvcc/MSVC 的兼容风险） | `C:\Users\l30086046\csg-work` → 项目根 |
 
 > 环境引导：项目内 `tools/env.cmd` 一键设置上述 PATH/INCLUDE/LIB；所有构建与测试命令通过它执行。
 > 冒烟证据：hello.cu（sm_75, -O3, FP32 kernel）编译执行输出正确；ncu/sanitizer --version 正常。
+> nsys 负结果（AR012 T002 实证）：系统 Nsight Systems 2024.2.3 与 Nsight Compute 归档附带版
+> nsys CLI 在本机无 admin 环境均不可用（CLI→后端 protobuf IPC 静默失败，不拉起 app 不产
+> report；详见 profile/cublas_disasm/report.md §1）——CUDA trace 需求由进程内 CUPTI
+> （tools/cupti_trace.cu）替代承担。
 
 ## 5. -Xptxas -v 资源审计表（build.log 实测摘录，sm_75 / CUDA 12.5.40 / MSVC 19.44，2026-10-04）
 
