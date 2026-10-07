@@ -51,6 +51,8 @@
 namespace sgemm {
 int g_deep_dbuf = 1;   // --dbuf：1 = 双缓冲单同步（默认，AR010 T004 实测全尺寸
                        // +3~14% 数据裁定），0 = 单缓冲双同步
+int g_deep_bpf = 0;    // --bpf：AR011 FR3a，B(kk+1) 寄存器预取（仅 DBUF=1 族）
+int g_deep_phase = 0;  // --phase：AR011 FR3b，kk 轮转错相（仅 DBUF=1 族）
 }
 
 namespace {
@@ -76,7 +78,23 @@ __device__ __forceinline__ float4 load_zero_guard(const float* base, long long i
 //（运行时 last_direct 参数是 ptxas 重排诱因，实测 deep@1024³ -4.9%：寄存器
 // 247/241→243 重分配连带流水重排；模板化后非直写路径恢复旧代码生成）。
 // （__stwt 写穿已实测回退：main +16μs 反压损失，无归约收益。）
-template <int DBUF, int LAST_DIRECT>
+//
+// AR011 T004 延迟覆盖消融（design §4.2.5，模板 <BPF, PHASE> 默认 0 = 现役
+// 路径 codegen 不变——回归门：旧 4 实例 bitwise 全绿 + 性能 ±1% 噪声带）：
+//   - BPF=1（FR3a）：compute 循环每 kk 步开头先发射 B(kk+1) 的 2×LDS.128
+//     入第二组寄存器（+8 regs 刀口），本步 128 FFMA 覆盖其延迟；kk=BK-1 不
+//     预取；B(kk) 自 kk=1 起由上步预取寄存器供给（kk=0 首步直取）。
+//     **不改变加法链序** → BPF on/off 必须 bitwise 一致（tests 专项）。
+//   - PHASE=1（FR3b）：warp w（w=tid>>5，0..7；warp 内统一无 lane 发散）
+//     按逻辑步 s 处理 kk'=(s+w)&7——屏障后全 warp 同 kk 齐射 LDS 的同相
+//     停顿被错相打散；A 广播与 B swizzle 均以实际 kk' 寻址（swizzle 消解
+//     域与 kk 取值无关，任意固定 sw 均 0 冲突）。**改变逐元素 k 加法序**
+//     （每线程 c[i][j] 的 k 递增序被轮转）→ rel≤1e-4 双参考 + 确定性
+//     双跑门（数值口径分级，design §4.2.5）。
+//   实例矩阵受控：BPF/PHASE 仅 DBUF=1 族 + LAST_DIRECT∈{0,1}，组合
+//   (bpf,phase)∈{(1,0),(0,1),(1,1)}（{on,off}² 因果分解需要 both-on，
+//   T004 修订）；DBUF=0 仅现役 <0,ld,0,0>。
+template <int DBUF, int LAST_DIRECT, int BPF = 0, int PHASE = 0>
 __global__ __launch_bounds__(256, 1)
 void sgemm_deep_kernel(const float* __restrict__ A,
                        const float* __restrict__ B,
@@ -163,18 +181,41 @@ void sgemm_deep_kernel(const float* __restrict__ A,
 
         // ---- ③ 计算主循环：每 kk 一步 4×LDS.128(A 广播) + 2×LDS.128(B
         //      swizzle) + 128 FFMA —— LDS:FFMA = 1:21.3 ----
+        //      BPF=1：步首先发射 B(kk+1) LDS（延迟由本步 FFMA 覆盖）；
+        //      PHASE=1：warp w 的 kk 序轮转 (s+w)&7（见文件头 AR011 注释）
+        const int wid = tid >> 5;                 // warp 号 0..7（PHASE 用）
+        float4 b0_pf, b1_pf;                      // BPF 预取寄存器组（+8 regs）
 #pragma unroll
-        for (int kk = 0; kk < BK; ++kk) {
+        for (int s = 0; s < BK; ++s) {
+            const int kk = PHASE ? ((s + wid) & 7) : s;
+            // BPF=1：预取发射——目标 = 下一逻辑步 s+1 将消费的 kk（PHASE=1
+            // 时为 (s+1+wid)&7，kk=7 步的下一消费值回绕到 0；末步 s=BK-1
+            // 无后继不预取）
+            float4 b0n, b1n;
+            if (BPF && s < BK - 1) {
+                const int kkn = PHASE ? ((s + 1 + wid) & 7) : (kk + 1);
+                const float4* bsn =
+                    reinterpret_cast<const float4*>(&Bs[buf][kkn][0]);
+                const int swn = kkn & 7;
+                b0n = bsn[(tx * 2) ^ swn];
+                b1n = bsn[(tx * 2 + 1) ^ swn];
+            }
             float4 a0, a1, a2, a3, b0, b1;
             const float4* as_row = reinterpret_cast<const float4*>(&As[buf][kk][0]);
             a0 = as_row[ty * 4];
             a1 = as_row[ty * 4 + 1];
             a2 = as_row[ty * 4 + 2];
             a3 = as_row[ty * 4 + 3];
-            const float4* bs_row = reinterpret_cast<const float4*>(&Bs[buf][kk][0]);
-            const int sw = kk & 7;
-            b0 = bs_row[(tx * 2) ^ sw];
-            b1 = bs_row[(tx * 2 + 1) ^ sw];
+            if (BPF && s > 0) {
+                b0 = b0_pf;                       // B(kk) 已于上步预取入寄存器
+                b1 = b1_pf;
+            } else {
+                const float4* bs_row =
+                    reinterpret_cast<const float4*>(&Bs[buf][kk][0]);
+                const int sw = kk & 7;
+                b0 = bs_row[(tx * 2) ^ sw];
+                b1 = bs_row[(tx * 2 + 1) ^ sw];
+            }
             const float af[16] = {a0.x, a0.y, a0.z, a0.w,
                                   a1.x, a1.y, a1.z, a1.w,
                                   a2.x, a2.y, a2.z, a2.w,
@@ -186,6 +227,10 @@ void sgemm_deep_kernel(const float* __restrict__ A,
 #pragma unroll
                 for (int j = 0; j < TN; ++j)
                     c[i][j] = af[i] * bf[j] + c[i][j];
+            if (BPF && s < BK - 1) {
+                b0_pf = b0n;                      // 寄存器组交换（unroll 后
+                b1_pf = b1n;                      // 由编译器重命名消除）
+            }
         }
         if (!DBUF) __syncthreads();   // DBUF=0：S2 全块读完 As/Bs 方可覆写
         // DBUF=1：无 S2——buf 周期 2，覆写权由下一轮 S 的 barrier 语义保证
@@ -240,13 +285,27 @@ void deep_tile_grid(const float* A, const float* B, float* Out_base,
     const dim3 grid(grid_n, grid_m, grid_z);
     const dim3 block(16, 16, 1);
     const int last_direct = (Out_last != Out_base) ? 1 : 0;
+    // AR011 T004：BPF/PHASE 消融实例矩阵（受控，design §4.2.5）——仅 DBUF=1
+    // 族 × (bpf,phase)∈{00,10,01,11}（both-on 支撑 {on,off}² 因果分解）；
+    // DBUF=0 仅现役 <0,ld,0,0>（main.cu 已对 --dbuf 0 + --bpf/--phase 打
+    // [note]，此层防御性忽略）
     if (sgemm::g_deep_dbuf) {
-        if (last_direct)
-            sgemm_deep_kernel<1, 1><<<grid, block>>>(A, B, Out_base, Out_last,
-                                                     M, N, K, tps, num_tiles);
-        else
-            sgemm_deep_kernel<1, 0><<<grid, block>>>(A, B, Out_base, Out_last,
-                                                     M, N, K, tps, num_tiles);
+        const int b = (sgemm::g_deep_bpf != 0) ? 1 : 0;
+        const int p = (sgemm::g_deep_phase != 0) ? 1 : 0;
+#define LAUNCH_DEEP(BPF_, PH_)                                            \
+        do {                                                              \
+            if (last_direct)                                              \
+                sgemm_deep_kernel<1, 1, BPF_, PH_><<<grid, block>>>(      \
+                    A, B, Out_base, Out_last, M, N, K, tps, num_tiles);   \
+            else                                                          \
+                sgemm_deep_kernel<1, 0, BPF_, PH_><<<grid, block>>>(      \
+                    A, B, Out_base, Out_last, M, N, K, tps, num_tiles);   \
+        } while (0)
+        if (b && p)      LAUNCH_DEEP(1, 1);
+        else if (b)      LAUNCH_DEEP(1, 0);
+        else if (p)      LAUNCH_DEEP(0, 1);
+        else             LAUNCH_DEEP(0, 0);
+#undef LAUNCH_DEEP
     } else {
         if (last_direct)
             sgemm_deep_kernel<0, 1><<<grid, block>>>(A, B, Out_base, Out_last,

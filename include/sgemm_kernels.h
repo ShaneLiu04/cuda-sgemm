@@ -137,7 +137,14 @@ extern int g_l2_persist;         // --persist，L2 persistence 钉 C 开关，�
                                    //   1 = 计时区内 accessPolicyWindow 钉 C +
                                    //   计时区后强制复位（先于 cuBLAS 锚定，协议纪律）
 extern double g_l2_hit;          // --hit，accessPolicyWindow hitRatio，默认 0.8
-                                   //   （0.5..1.0；C > persisting 上限时按比例钉入）
+                                    //   （0.5..1.0；C > persisting 上限时按比例钉入）
+extern int g_deep_bpf;           // --bpf，deep/dsk B 片段 kk+1 寄存器预取消融，
+                                    //   默认 0（AR011 FR3a；链序不变 → bitwise 门；
+                                    //   仅 DBUF=1 族实例化）
+extern int g_deep_phase;         // --phase，deep/dsk kk 轮转错相消融，默认 0
+                                    //   （AR011 FR3b；warp w 序 kk'=(s+w)&7；改变
+                                    //   k 加法序 → rel≤1e-4 + 确定性双跑门；
+                                    //   仅 DBUF=1 族实例化）
 extern bool g_verbose;           // 打印回退路径细节（测试断言路径覆盖用）
 }
 

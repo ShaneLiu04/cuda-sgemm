@@ -81,6 +81,14 @@ struct CliOptions {
                                      //  AR011 详设 §4.6；1 = 计时区内钉 C + 区后强制复位）
     double hit = 0.8;               // --persist 的 accessPolicyWindow hitRatio（0.5..1.0；
                                      //  默认 0.8，AR011 详设 §4.6）
+    int bpf = 0;                    // deep/dsk 的 B 片段 kk 预取消融旋钮（0/1；默认 0；
+                                     //  1 = compute 循环步首先 LDS B(kk+1) 入第二组寄存器，
+                                     //  本步 128 FFMA 覆盖其延迟——加法链序不变 → bitwise 门；
+                                     //  仅 DBUF=1 族实例化（AR011 详设 §4.2.5/T004））
+    int phase = 0;                  // deep/dsk 的 kk 轮转错相消融旋钮（0/1；默认 0；1 = warp w
+                                     //  按 kk'=(s+w)&7 序处理（打破屏障后全 warp 同相 LDS 齐射）；
+                                     //  改变逐元素 k 加法序 → rel≤1e-4 + 确定性双跑门；
+                                     //  仅 DBUF=1 族实例化（AR011 详设 §4.2.5/T004））
     int rounds = 1;                 // 多轮统计轮数（AR007；1=单轮，与历史语义一致）
     bool list_kernels = false;
     bool help = false;
@@ -116,6 +124,13 @@ inline void print_usage(const char* prog) {
         "                       before any cuBLAS anchor run)\n"
         "  --hit <0.5..1.0>     accessPolicyWindow hitRatio (default 0.8; effective when\n"
         "                       --persist 1; C larger than persisting limit pins fractionally)\n"
+        "  --bpf <0|1>          B-fragment kk+1 register prefetch ablation for deep/dsk\n"
+        "                       (default 0; AR011 FR3a; chain order unchanged -> bitwise;\n"
+        "                       instantiated for --dbuf 1 only)\n"
+        "  --phase <0|1>        kk rotation phase-offset ablation for deep/dsk (default 0;\n"
+        "                       AR011 FR3b; warp w processes kk in order (s+w)&7 -- changes\n"
+        "                       per-element k sum order -> rel<=1e-4 + determinism gates;\n"
+        "                       instantiated for --dbuf 1 only)\n"
         "  --verbose            print dispatch/fallback details\n"
         "  --list-kernels       list registered kernels\n"
         "  --help               this message\n",
@@ -151,6 +166,8 @@ inline CliOptions parse_cli(int argc, char** argv) {
         else if (a == "--waves")        opt.waves = std::atoi(next(a.c_str()));
         else if (a == "--persist")      opt.persist = std::atoi(next(a.c_str()));
         else if (a == "--hit")          opt.hit = std::atof(next(a.c_str()));
+        else if (a == "--bpf")          opt.bpf = std::atoi(next(a.c_str()));
+        else if (a == "--phase")        opt.phase = std::atoi(next(a.c_str()));
         else if (a == "--check")        opt.check = true;
         else if (a == "--csv")          opt.csv = true;
         else if (a == "--verbose")      opt.verbose = true;
@@ -208,6 +225,14 @@ inline CliOptions parse_cli(int argc, char** argv) {
     }
     if (opt.hit < 0.5 || opt.hit > 1.0) {
         std::fprintf(stderr, "[CLI_ERROR] --hit must be in 0.5..1.0 (got %.3f)\n", opt.hit);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.bpf != 0 && opt.bpf != 1) {
+        std::fprintf(stderr, "[CLI_ERROR] --bpf must be 0 or 1 (got %d)\n", opt.bpf);
+        std::exit(EXIT_FAILURE);
+    }
+    if (opt.phase != 0 && opt.phase != 1) {
+        std::fprintf(stderr, "[CLI_ERROR] --phase must be 0 or 1 (got %d)\n", opt.phase);
         std::exit(EXIT_FAILURE);
     }
     return opt;

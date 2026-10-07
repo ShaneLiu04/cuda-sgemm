@@ -198,6 +198,23 @@ int main(int argc, char** argv) {
                       "[note] --waves applies to kernel 'streamk' only (ignored for '%s')\n",
                       opt.kernel.c_str());
     }
+    // AR011 T004：deep/dsk 延迟覆盖消融双旋钮（--bpf/--phase，默认 0；实例
+    // 矩阵受控 design §4.2.5：仅 DBUF=1 族实例化，--dbuf 0 时降级 [note]）
+    if (opt.kernel == "deep" || opt.kernel == "dsk") {
+        if (opt.dbuf == 0 && (opt.bpf != 0 || opt.phase != 0)) {
+            std::fprintf(stderr,
+                          "[note] --bpf/--phase instantiated for --dbuf 1 only "
+                          "(ignored: --dbuf 0 active path)\n");
+        } else {
+            sgemm::g_deep_bpf   = opt.bpf;
+            sgemm::g_deep_phase = opt.phase;
+        }
+    } else if (opt.bpf != 0 || opt.phase != 0) {
+        std::fprintf(stderr,
+                      "[note] --bpf/--phase apply to kernel 'deep'/'dsk' only "
+                      "(ignored for '%s')\n",
+                      opt.kernel.c_str());
+    }
     // AR011：L2 persistence 钉 C 开关（--persist，dsk/streamk 有效；--hit 为其
     // hitRatio 子旋钮）。协议纪律（design §4.2.4）：pin 在计时区内、reset 在
     // 计时区后且先于任何 cuBLAS 锚定运行。

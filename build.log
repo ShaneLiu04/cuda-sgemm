@@ -377,3 +377,91 @@ ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_str
 ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0EEEvPKfS2_PfS3_Pjiiiiiiii
 0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 255 registers, 12420 bytes smem, 424 bytes cmem[0]
+
+===== AR011 T004 sgemm_deep.cu template matrix ptxas audit (2026-10-07, <DBUF,LD,BPF,PHASE> 10 instances, all 0 spill) =====
+legacy <0,ld,0,0>=247r/12416B <1,ld,0,0>=243r/24832B (codegen unchanged vs AR010 baseline);
+BPF +2r (245); PHASE -13r (230); BPF+PHASE 230; smem identical per DBUF family
+[27/36] Building CUDA object CMakeFiles\sgemm_bench.dir\src\sgemm_deep.cu.obj
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 247 registers, 12416 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi1ELi0ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi1ELi0ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 247 registers, 12416 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 243 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi0ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi0ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 243 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi0ELi1EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi0ELi1EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 230 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi0ELi1EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi0ELi1EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 230 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi1ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi1ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 245 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi1ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi1ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 245 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi1ELi1EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi1ELi1EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 230 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi1ELi1EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi1ELi1EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 230 registers, 24832 bytes smem, 404 bytes cmem[0]
+sgemm_deep.cu
+[35/36] Building CUDA object CMakeFiles\sgemm_test.dir\src\sgemm_deep.cu.obj
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 247 registers, 12416 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi1ELi0ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi0ELi1ELi0ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 247 registers, 12416 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi0ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 243 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi0ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi0ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 243 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi0ELi1EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi0ELi1EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 230 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi0ELi1EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi0ELi1EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 230 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi1ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi1ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 245 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi1ELi0EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi1ELi0EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 245 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi1ELi1EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi0ELi1ELi1EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 230 registers, 24832 bytes smem, 404 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi1ELi1EEEvPKfS2_PfS3_iiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN46_GLOBAL__N__c7bfc8a5_13_sgemm_deep_cu_506e8e6417sgemm_deep_kernelILi1ELi1ELi1ELi1EEEvPKfS2_PfS3_iiiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 230 registers, 24832 bytes smem, 404 bytes cmem[0]
+sgemm_deep.cu

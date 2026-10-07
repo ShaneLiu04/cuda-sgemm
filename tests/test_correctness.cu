@@ -286,10 +286,46 @@ int main(int argc, char** argv) {
         run_dump(sgemm::K_STREAMK, 1024, 1024, 1024, g2);
         anchor_case("streamk(auto W=5) double-run determinism @1024^3", g1, g2);
     }
+    {   // 锚 6（AR011 T004 FR3a）：BPF on/off 不改变加法链序 → 逐位一致
+        const int bp = sgemm::g_deep_bpf;
+        std::vector<float> g, r;
+        sgemm::g_deep_bpf = 1;
+        run_dump(sgemm::K_DEEP, 1536, 1024, 512, g);
+        sgemm::g_deep_bpf = 0;
+        run_dump(sgemm::K_DEEP, 1536, 1024, 512, r);
+        sgemm::g_deep_bpf = bp;
+        anchor_case("deep(BPF=1) == deep(BPF=0) chain-identical @1536x1024x512",
+                    g, r);
+    }
+    {   // 锚 7（AR011 T004 FR3b）：PHASE=1 数值口径分级门——双跑逐位确定
+        //（轮转序 warp 内确定）+ vs PHASE=0 rel<=1e-4（k 加法序改变的正确性界）
+        const int ph = sgemm::g_deep_phase;
+        std::vector<float> r, g1, g2;
+        run_dump(sgemm::K_DEEP, 1024, 1024, 1024, r);       // PHASE=0 参照
+        sgemm::g_deep_phase = 1;
+        run_dump(sgemm::K_DEEP, 1024, 1024, 1024, g1);
+        run_dump(sgemm::K_DEEP, 1024, 1024, 1024, g2);
+        sgemm::g_deep_phase = ph;
+        anchor_case("deep(PHASE=1) double-run determinism @1024^3", g1, g2);
+        ++total;
+        double max_abs = 0.0, max_ref = 0.0;
+        for (size_t i = 0; i < r.size(); ++i) {
+            const double d = std::fabs((double)g1[i] - r[i]);
+            if (d > max_abs) max_abs = d;
+            const double a = std::fabs(r[i]);
+            if (a > max_ref) max_ref = a;
+        }
+        const double rel = max_ref > 0.0 ? max_abs / max_ref : 0.0;
+        const bool ok = rel <= 1e-4;
+        if (ok) ++passed; else all_ok = false;
+        std::printf("  %-58s  %s (rel=%.3e)\n",
+                    "deep(PHASE=1) vs PHASE=0 rel<=1e-4 @1024^3",
+                    ok ? "REL-PASS" : "REL-FAIL", rel);
+    }
 
     std::printf("==================================================================\n");
-    std::printf(" SUMMARY: %d / %d PASS (incl. %d bitwise anchors)  ->  %s\n",
-                passed, total, 5, all_ok ? "ALL PASS" : "FAILED");
+    std::printf(" SUMMARY: %d / %d PASS (incl. 7 bitwise/rel anchors)  ->  %s\n",
+                passed, total, all_ok ? "ALL PASS" : "FAILED");
     std::printf("==================================================================\n");
     return all_ok ? 0 : EXIT_FAILURE;
 }
