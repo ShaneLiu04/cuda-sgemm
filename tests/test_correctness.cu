@@ -131,6 +131,27 @@ struct TestCase {
     bool cpu_ref;   // M*N*K <= ~2^28 时启用 CPU double 参考
 };
 
+// ---- AR011 bitwise 锚链载体（design §6.1；AR010 21/21 ad-hoc 专项永久化）----
+// 同一输入（与 run_case 同种子 7/8）单 kernel 落盘 host，供跨 kernel memcmp。
+void run_dump(int kernel_id, int M, int N, int K, std::vector<float>& out) {
+    float *dA, *dB, *dC;
+    CUDA_CHECK(cudaMalloc(&dA, (size_t)M * K * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&dB, (size_t)K * N * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&dC, (size_t)M * N * sizeof(float)));
+    std::vector<float> hA((size_t)M * K), hB((size_t)K * N);
+    sgemm::init_matrix_host(hA.data(), hA.size(), 7u);
+    sgemm::init_matrix_host(hB.data(), hB.size(), 8u);
+    CUDA_CHECK(cudaMemcpy(dA, hA.data(), hA.size() * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(dB, hB.data(), hB.size() * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemset(dC, 0, (size_t)M * N * sizeof(float)));
+    SgemmFn fn = sgemm::kernel_fn(kernel_id);
+    fn(dA, dB, dC, M, N, K);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    out.resize((size_t)M * N);
+    CUDA_CHECK(cudaMemcpy(out.data(), dC, out.size() * sizeof(float), cudaMemcpyDeviceToHost));
+    cudaFree(dA); cudaFree(dB); cudaFree(dC);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -193,9 +214,82 @@ int main(int argc, char** argv) {
         }
     }
 
+    // ---- AR011 bitwise 锚链专项（design §6.1 三锚链 + 确定性双跑）----
+    // 判据：跨 kernel / 双跑 memcmp 全位一致（0 容差）。旋钮就地设置并复原。
+    std::printf("------------------------------------------------------------------\n");
+    std::printf(" AR011 bitwise anchors (streamk, memcmp exact)\n");
+    std::printf("------------------------------------------------------------------\n");
+    auto anchor_case = [&](const char* name, const std::vector<float>& got,
+                           const std::vector<float>& ref) {
+        ++total;
+        const bool eq = (got.size() == ref.size()) &&
+                        std::memcmp(got.data(), ref.data(),
+                                    got.size() * sizeof(float)) == 0;
+        if (eq) ++passed; else all_ok = false;
+        std::printf("  %-58s  %s\n", name, eq ? "BITWISE-PASS" : "BITWISE-FAIL");
+    };
+    {   // 锚 1：TOT<48 单波旁路 == deep（wrapper 直通；256x512x64: TOT=32）
+        std::vector<float> g, r;
+        run_dump(sgemm::K_STREAMK, 256, 512, 64, g);
+        run_dump(sgemm::K_DEEP, 256, 512, 64, r);
+        anchor_case("streamk(TOT<48 bypass) == deep @256x512x64", g, r);
+    }
+    {   // 锚 2：W=1（U=nt=64，cover=1 满波直写）== deep
+        const int sw = sgemm::g_streamk_waves;
+        sgemm::g_streamk_waves = 1;
+        std::vector<float> g, r;
+        run_dump(sgemm::K_STREAMK, 1536, 1024, 512, g);
+        run_dump(sgemm::K_DEEP, 1536, 1024, 512, r);
+        sgemm::g_streamk_waves = sw;
+        anchor_case("streamk(W=1, U=nt=64, cover=1) == deep @1536x1024x512", g, r);
+    }
+    {   // 锚 3：W=2（U=32 切点 == dsk sk2 tps=32 逐点重合）== dsk(direct)
+        const int sw = sgemm::g_streamk_waves, sk = sgemm::g_swsk_slices,
+                  rv = sgemm::g_reduce_ilp2;
+        sgemm::g_streamk_waves = 2;
+        sgemm::g_swsk_slices = 2;
+        sgemm::g_reduce_ilp2 = 0;
+        std::vector<float> g, r;
+        run_dump(sgemm::K_STREAMK, 1536, 1024, 512, g);
+        run_dump(sgemm::K_DSK, 1536, 1024, 512, r);
+        sgemm::g_streamk_waves = sw; sgemm::g_swsk_slices = sk;
+        sgemm::g_reduce_ilp2 = rv;
+        anchor_case("streamk(W=2, U=32) == dsk(sk2,direct) @1536x1024x512", g, r);
+    }
+    {   // 锚 4：1024^3 W=2 —— U=43 与 nt=128 非整除：切点 43b 相对 128c 逐 tile
+        // 漂移，128c≡0 (mod 43) 仅 c=0 成立 → 只有 tile0（C[0:256,0:128]）
+        // 与 dsk sk3 tps=43 逐点重合（design §4.2.1 例），故只对 tile0 区域
+        // memcmp（cover=3 票据归并路径在 1024^3 的链序实证）
+        const int sw = sgemm::g_streamk_waves, sk = sgemm::g_swsk_slices,
+                  rv = sgemm::g_reduce_ilp2;
+        sgemm::g_streamk_waves = 2;
+        sgemm::g_swsk_slices = 3;
+        sgemm::g_reduce_ilp2 = 0;
+        std::vector<float> g, r;
+        run_dump(sgemm::K_STREAMK, 1024, 1024, 1024, g);
+        run_dump(sgemm::K_DSK, 1024, 1024, 1024, r);
+        sgemm::g_streamk_waves = sw; sgemm::g_swsk_slices = sk;
+        sgemm::g_reduce_ilp2 = rv;
+        ++total;
+        bool eq = true;
+        for (int i = 0; i < 256 && eq; ++i)
+            eq = std::memcmp(&g[(size_t)i * 1024], &r[(size_t)i * 1024],
+                             128 * sizeof(float)) == 0;
+        if (eq) ++passed; else all_ok = false;
+        std::printf("  %-58s  %s\n",
+                    "streamk(W=2) tile0 region == dsk(sk3,direct) @1024^3",
+                    eq ? "BITWISE-PASS" : "BITWISE-FAIL");
+    }
+    {   // 锚 5：确定性双跑（auto W=5 票据归并路径，赢家不确定 → 结果须逐位确定）
+        std::vector<float> g1, g2;
+        run_dump(sgemm::K_STREAMK, 1024, 1024, 1024, g1);
+        run_dump(sgemm::K_STREAMK, 1024, 1024, 1024, g2);
+        anchor_case("streamk(auto W=5) double-run determinism @1024^3", g1, g2);
+    }
+
     std::printf("==================================================================\n");
-    std::printf(" SUMMARY: %d / %d PASS  ->  %s\n", passed, total,
-                all_ok ? "ALL PASS" : "FAILED");
+    std::printf(" SUMMARY: %d / %d PASS (incl. %d bitwise anchors)  ->  %s\n",
+                passed, total, 5, all_ok ? "ALL PASS" : "FAILED");
     std::printf("==================================================================\n");
     return all_ok ? 0 : EXIT_FAILURE;
 }

@@ -166,13 +166,12 @@ inline int kernel_id(const std::string& name) {
 }
 
 inline SgemmFn kernel_fn(int id) {
-    // AR011 T001 Red 状态：streamk 槽位 nullptr（接入前可观察 "[ERROR] kernel
-    // not registered"）；T002 Green 替换为 sgemm_streamk
+    // AR011 T002 Green：streamk 接入（T001 Red 期间槽位为 nullptr）
     static const SgemmFn fns[KERNEL_COUNT] = {
         sgemm_naive, sgemm_coalesced, sgemm_smem_1d, sgemm_2d_tile,
         sgemm_vec4,  sgemm_cpasync,   sgemm_cpasync_v2,
         sgemm_swpipe, sgemm_swpipe_sk, sgemm_ws, sgemm_cublas, sgemm_auto,
-        sgemm_wide, sgemm_wsk, sgemm_deep, sgemm_dsk, nullptr};
+        sgemm_wide, sgemm_wsk, sgemm_deep, sgemm_dsk, sgemm_streamk};
     return (id >= 0 && id < KERNEL_COUNT) ? fns[id] : nullptr;
 }
 }  // namespace sgemm

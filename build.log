@@ -360,3 +360,20 @@ ptxas info    : 0 bytes gmem
 cublas_baseline.cu
 tmpxft_000035d0_00000000-10_cublas_baseline.cudafe1.cpp
 [34/34] Linking CUDA executable sgemm_test.exe
+
+===== AR011 T002 sgemm_streamk.cu ptxas audit (2026-10-07, post ticket-fix clean build, bench+test objs) =====
+DBUF=0: 255 regs, 12420 B smem, 0 spill | DBUF=1: 255 regs, 24836 B smem, 0 spill (deep baseline 247/243 undisturbed)
+[13/36] Building CUDA object CMakeFiles\sgemm_bench.dir\src\sgemm_streamk.cu.obj
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0EEEvPKfS2_PfS3_Pjiiiiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0EEEvPKfS2_PfS3_Pjiiiiiiii
+0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 255 registers, 12420 bytes smem, 424 bytes cmem[0]
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1EEEvPKfS2_PfS3_Pjiiiiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi1EEEvPKfS2_PfS3_Pjiiiiiiii
+0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 255 registers, 24836 bytes smem, 424 bytes cmem[0]
+[34/36] Building CUDA object CMakeFiles\sgemm_test.dir\src\sgemm_streamk.cu.obj
+ptxas info    : Compiling entry function '_ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0EEEvPKfS2_PfS3_Pjiiiiiiii' for 'sm_75'
+ptxas info    : Function properties for _ZN49_GLOBAL__N__e8ca02b4_16_sgemm_streamk_cu_004574ab20sgemm_streamk_kernelILi0EEEvPKfS2_PfS3_Pjiiiiiiii
+0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 255 registers, 12420 bytes smem, 424 bytes cmem[0]

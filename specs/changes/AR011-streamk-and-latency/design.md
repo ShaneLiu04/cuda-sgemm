@@ -189,6 +189,19 @@ epilogue 写 C（与单波路径同型，零 P 流量、零原子）。4096³（
 大部分 tile 走此路径 → streamk 自动退化为"deep + 少数跨界 tile 的 split"，
 P 容量与流量仅按真实 pairs 发生。
 
+**T002 实现修订（2026-10-07，bitwise 正确性驱动）**：
+
+- **归并默认改为 F2（全 P 归并）**：F1（own 以寄存器代入）在 winner 严格居中且
+  cover ≥ 3 时产生 `((own+P_{b_lo})+…) ≠ ((P_{b_lo}+own)+…)` 的错误结合序
+  （IEEE 交换律仅救首个二元组）；F2 中赢家将 c[i][j] **清零后复用为归并累加器**，
+  按 s 升序读**全部** P 切片（含 own）——链 `0+P[b_lo]+…+P[b_hi]` 与 dsk
+  全链恒逐位一致，且**与 winner 身份无关**（确定性天然成立）。代价仅赢家多读
+  自身切片 128KB/tile。F1 降级为 cover==2 的专属微优化备选（交换律安全域）。
+- **P 索引改 per-block 槽位**：`slice(b,c) = b·SLOTS + (c - c_lo(b))`，
+  `SLOTS = ceil(U/nt)+1`——免 c-major 前缀表与每次调用的 H2D 拷贝
+  （~5-10μs host 同步开销，违反单 kernel 低开销目标）；容量 (B·SLOTS) 较
+  真实 pairs 约 ×2，可接受（流量只触达真实槽）。
+
 **数值链序对齐论证（bitwise 基础）**：
 
 - dsk direct 归约链（sgemm_swpipe_sk.cu:153-203）：`acc = P[0] + P[1] + … + P[sk-2] + C`，

@@ -2690,6 +2690,150 @@ def fig_ladder_v4():
     plt.close(fig)
 
 
+# ---------------- AR011 fig29: Stream-K structure triptych ----------------
+# 数据/证据：tests bitwise 锚链 5/5（2026-10-07，本会话实测）+ build_t002.log
+# ptxas（255 regs / 0 spill 双实例）。结构示意面板不引性能数据（T005 另出图）。
+def fig29_streamk_structure():
+    TILE_C = ["#1a237e", "#3949ab", "#5c6bc0"]     # tile 色带
+    BLOCK_C = "#eceff1"                            # 块槽底色
+    WIN_C, ATOM_C, FENCE_C = "#2e7d32", "#c62828", "#f9a825"
+
+    fig, (axa, axb, axc) = plt.subplots(
+        1, 3, figsize=(17.0, 5.6),
+        gridspec_kw={"width_ratios": [1.25, 1.25, 1.0]})
+
+    # ---- (a) 块映射：tile-major 连续切分（锚 1536x1024x512, W=2 几何）----
+    NT, U, NTILES_SHOWN = 64, 32, 3                # nt / U；示意截前 3 tile
+    for c in range(NTILES_SHOWN):
+        axa.add_patch(plt.Rectangle((c * NT, 0.62), NT, 0.34,
+                                    color=TILE_C[c], alpha=0.85, ec="white"))
+        axa.text(c * NT + NT / 2, 0.79, f"tile c={c}\n64 k-tiles",
+                 ha="center", va="center", fontsize=8, color="white")
+    NB = NTILES_SHOWN * NT // U
+    for b in range(NB):
+        axa.add_patch(FancyBboxPatch((b * U + 0.6, 0.10), U - 1.2, 0.30,
+                                     boxstyle="round,pad=0.4",
+                                     fc=BLOCK_C, ec="#607d8b", lw=1.0))
+        axa.text(b * U + U / 2, 0.25, f"block {b}\nU=32 units",
+                 ha="center", va="center", fontsize=7.4, color="#263238")
+    for b in range(NB):                            # 块 -> tile 覆盖连线
+        c_lo, c_hi = b * U // NT, (b * U + U - 1) // NT
+        for c in (c_lo, c_hi):
+            axa.annotate("", xy=(c * NT + NT / 2, 0.62), xytext=(b * U + U / 2, 0.42),
+                         arrowprops=dict(arrowstyle="-", color="#90a4ae", lw=0.9))
+    axa.annotate("cover(c) = b_hi-b_lo+1 = 2\n"
+                 "b_lo=⌊c·nt/U⌋  b_hi=⌊((c+1)·nt−1)/U⌋",
+                 xy=(0, 1.02), fontsize=8.2, color="#37474f", va="bottom")
+    axa.text(NTILES_SHOWN * NT / 2, -0.04,
+             "units u = c·nt + kt, linearized;  B = 48·W = 96 blocks\n"
+             "(schematic: first 3 of 48 tiles; geometry = bitwise anchor 2)",
+             ha="center", va="top", fontsize=7.6, color="#546e7a")
+    axa.set_xlim(-2, NTILES_SHOWN * NT + 2)
+    axa.set_ylim(-0.34, 1.30)
+    axa.axis("off")
+    axa.set_title("(a) tile-major block mapping\n"
+                  "1536×1024×512, W=2: TOT=3072, U=32 = dsk sk2 tps",
+                  fontsize=9.6)
+
+    # ---- (b) 票据协议：release-acquire（cover=3 例）----
+    lanes = ["block b_lo", "block b_lo+1", "block b_hi"]   # 顶到底
+    seg = [  # (start, dur, color, label)  模型化时间单位
+        [(0.0, 2.6, "#7e57c2", "compute partial"), (2.6, 0.9, "#5c6bc0", "store P"),
+         (3.5, 0.35, FENCE_C, "fence"), (3.85, 0.25, ATOM_C, "")],
+        [(0.5, 2.6, "#7e57c2", "compute partial"), (3.1, 0.9, "#5c6bc0", "store P"),
+         (4.0, 0.35, FENCE_C, "fence"), (4.35, 0.25, ATOM_C, "")],
+        [(1.1, 2.6, "#7e57c2", "compute partial"), (3.7, 0.9, "#5c6bc0", "store P"),
+         (4.6, 0.35, FENCE_C, "fence"), (4.95, 0.25, ATOM_C, ""),
+         (5.35, 1.7, WIN_C, "F2 merge -> C; tick=0")],
+    ]
+    olds = ["old=0", "old=1", "old=2\n=cover-1\nWINNER"]
+    for i, (ln, ss, old) in enumerate(zip(lanes, seg, olds)):
+        y = 2 - i                                  # 顶到底: 2,1,0
+        axb.text(-0.25, y + 0.28, ln, fontsize=8.4, ha="left", color="#37474f")
+        for (st, d, cl, lab) in ss:
+            axb.broken_barh([(st, d)], (y, 0.56), color=cl, ec="white",
+                            zorder=3, alpha=0.92)
+            if lab and d > 0.5:
+                axb.text(st + d / 2, y + 0.28, lab, ha="center", va="center",
+                         fontsize=7.2, color="white", zorder=4)
+        axb.annotate(old, xy=(ss[3][0] + 0.12, y), xytext=(5.9, y + 0.02),
+                     fontsize=7.6, color=ATOM_C if i < 2 else WIN_C,
+                     arrowprops=dict(arrowstyle="->", lw=0.9,
+                                     color=ATOM_C if i < 2 else WIN_C))
+    axb.annotate("release: per-writer __threadfence()\n"
+                 "acquire: tid==0 atomicAdd(tick[c], 1)\n"
+                 "broadcast: s_winner via __syncthreads",
+                 xy=(4.0, 2.62), fontsize=7.8, color="#37474f", ha="left")
+    axb.text(2.9, -0.62, "T002 Green fix: per-thread atomicAdd counted +256/block\n"
+             "-> early false winner merged stale P (rel=1.0 repro @512^3)",
+             fontsize=7.4, color="#c62828", ha="center")
+    axb.set_xlim(-0.3, 8.6)
+    axb.set_ylim(-0.95, 3.1)
+    axb.axis("off")
+    axb.set_title("(b) per-tile ticket merge protocol\n"
+                  "(single-thread ticket, block-uniform winner branch)",
+                  fontsize=9.6)
+
+    # ---- (c) 归并链序 + 锚链实证表 ----
+    def chain(ax, y, boxes, title):
+        ax.text(0.0, y + 0.62, title, fontsize=8.6, fontweight="bold",
+                color="#37474f")
+        x = 0.0
+        for (lab, cl, w) in boxes:
+            ax.add_patch(FancyBboxPatch((x, y), w, 0.44,
+                                        boxstyle="round,pad=0.06",
+                                        fc=cl, ec="white", lw=1.0))
+            ax.text(x + w / 2, y + 0.22, lab, ha="center", va="center",
+                    fontsize=7.4, color="white")
+            x += w
+            if x < 4.9:
+                ax.text(x + 0.015, y + 0.22, "+", ha="left", va="center",
+                        fontsize=9, color="#455a64")
+                x += 0.05
+        ax.text(x + 0.04, y + 0.22, "→ C", fontsize=8, color="#1b5e20",
+                fontweight="bold")
+    chain(axc, 2.10, [("0", "#90a4ae", 0.30), ("P[b_lo]", "#3949ab", 0.62),
+                      ("P[b_lo+1]", "#3949ab", 0.78), ("P[b_hi]", "#3949ab", 0.62)],
+          "streamk F2 (winner-independent, z-order):")
+    chain(axc, 1.28, [("0", "#90a4ae", 0.30), ("P[0]", "#00695c", 0.52),
+                      ("P[1]", "#00695c", 0.52), ("C_own=P[sk-1]", "#00695c", 1.05)],
+          "dsk direct (v0):")
+    axc.annotate("cut alignment (U=32=tps) ⇒ identical chains ⇒ bitwise\n"
+                 "(1024^3 W=2: U=43, 128c≡0 mod 43 only c=0 ⇒ tile0-only anchor)",
+                 xy=(0.0, 0.86), fontsize=7.4, color="#546e7a")
+    rows = [("", ""),
+            ("bitwise anchors (memcmp, this session)", "5/5"),
+            ("  1  bypass(TOT<48) == deep @256x512x64", "PASS"),
+            ("  2  W=1 (U=nt=64, cover=1) == deep", "PASS"),
+            ("  3  W=2 == dsk sk2 direct (whole C)", "PASS"),
+            ("  4  W=2 tile0 == dsk sk3 direct @1024^3", "PASS"),
+            ("  5  double-run determinism @1024^3", "PASS"),
+            ("correctness suite (incl. anchors)", "160/160"),
+            ("ptxas: regs / spill (DBUF 0|1)", "255|255 / 0|0"),
+            ("memcheck + racecheck (512^3, 1024^3)", "0 err / 0 haz")]
+    y0 = 0.62
+    for i, (k, v) in enumerate(rows):
+        w = "bold" if i in (0, 1, 7, 8, 9) else "normal"
+        axc.text(0.0, y0 - i * 0.115, k, fontsize=7.6, fontweight=w,
+                 family="monospace", color="#263238")
+        axc.text(4.95, y0 - i * 0.115, v, fontsize=7.6, fontweight=w,
+                 family="monospace", ha="right",
+                 color=WIN_C if v in ("PASS", "5/5", "160/160") else "#263238")
+    axc.set_xlim(-0.05, 5.0)
+    axc.set_ylim(-0.55, 2.95)
+    axc.axis("off")
+    axc.set_title("(c) merge chain order + anchor evidence\n"
+                  "(tests run 2026-10-07, git @ T002)", fontsize=9.6)
+
+    fig.suptitle("AR011 Kernel 16 streamk: structure triptych -- mapping / "
+                 "ticket / merge chain (T002)", fontsize=13, fontweight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.savefig(os.path.join(OUT_DIR, "fig29_streamk_structure.png"))
+    plt.close(fig)
+
+
+fig29_streamk_structure()
+
 fig_gates_v4()
 fig_ladder_v4()
 
