@@ -62,7 +62,7 @@ package "cuda-sgemm" {
 |------|------|---------|
 | `include/common.h` | CUDA_CHECK、CLI 解析、event 计时器、GFLOPS/带宽计算 | 全部 kernel/test/bench 共用，接口冻结于 AR001 |
 | `src/sgemm_*.cu` | 七版 kernel（naive→swpipe），每文件自包含 | 统一签名（§4.1），头部注释契约（AGENTS.md §4.5） |
-| `src/main.cu` | `--kernel {naive\|coalesced\|smem1d\|tile2d\|vec4\|cpasync\|cpasync2\|swpipe\|swsk\|ws\|auto\|cublas\|all} [--bk 8/16/32] [--lb 1/2] [--sk 1-16] [--stages 2/3] [--wp 1/2] [--rounds N] [--csv] [--verbose] --m --n --k --warmup --iters --check` | CLI 参数表冻结于 AR001；AR007 扩展 swpipe/--rounds/bk 默认 32；AR008 扩展 swsk/ws/auto/--sk（见 §4.6） |
+| `src/main.cu` | `--kernel {naive\|coalesced\|smem1d\|tile2d\|vec4\|cpasync\|cpasync2\|swpipe\|swsk\|ws\|auto\|cublas\|wide\|wsk\|deep\|dsk\|all} [--bk 8/16/32] [--lb 1/2] [--sk 1-16] [--stages 2/3] [--wp 1/2] [--wlb 1/2] [--dbuf 0/1] [--rv2 0/1/3] [--rounds N] [--csv] [--verbose] --m --n --k --warmup --iters --check` | CLI 参数表冻结于 AR001；AR007 扩展 swpipe/--rounds/bk 默认 32；AR008 扩展 swsk/ws/auto/--sk；AR009 扩展 wide/wsk/--wlb；AR010 扩展 deep/dsk/--dbuf/--rv2（见 §4.6） |
 | `tests/` | 参考实现 + 误差判据 + 一键全矩阵回归 | §4.4 |
 | `bench/` | 批量跑分 → `results/performance.csv` | §4.3 |
 | `profile/` | ncu 采集脚本 + 各版指标导出 + sanitizer 脚本 | §4.5 |
@@ -88,7 +88,9 @@ void sgemm_swpipe_sk(const float* A, const float* B, float* C, int M, int N, int
 void sgemm_ws       (const float* A, const float* B, float* C, int M, int N, int K);  // Kernel 7（AR008）：warp 专属化 producer/consumer + named barriers + 3 级 smem 环，CLI 注册名 ws
 void sgemm_auto     (const float* A, const float* B, float* C, int M, int N, int K);  // 自动选核 v2（AR009 T006）：blocks=ceil(M/128)·ceil(N/128) 几何带判（≤4→swsk6 / ≤64→swsk3 / 其余→swpipe，1620 MHz 稳态实测回填），K 钳制 sk≤ceil(K/8)，CLI 注册名 auto（registry K_AUTO=11）
 void sgemm_wide     (const float* A, const float* B, float* C, int M, int N, int K);  // Kernel 8（AR009）：512 线程宽块双角色流水（64×256 tile，TM4×TN8），CLI 注册名 wide（K_WIDE=12）
-void sgemm_wsk      (const float* A, const float* B, float* C, int M, int N, int K);  // Kernel 8 变体（AR009）：wide + split-K（复用 detail::swsk_reduce 确定性归约，与 swsk 数值同源逐位一致），CLI 注册名 wsk（K_WSK=13，KERNEL_COUNT=14）
+void sgemm_wsk      (const float* A, const float* B, float* C, int M, int N, int K);  // Kernel 8 变体（AR009）：wide + split-K（复用 detail::swsk_reduce 确定性归约，与 swsk 数值同源逐位一致），CLI 注册名 wsk（K_WSK=13）
+void sgemm_deep     (const float* A, const float* B, float* C, int M, int N, int K);  // Kernel 9（AR010）：深寄存器分块——BM256×BN128×BK8、256 线程、每线程 16×8=128 FMA 累加器、247/241 regs 0 spill 恰满 64K（1 block/SM）、smem 双缓冲（g_deep_dbuf，--dbuf 钮），CLI 注册名 deep（K_DEEP=14）
+void sgemm_deep_sk  (const float* A, const float* B, float* C, int M, int N, int K);  // Kernel 9 变体（AR010）：deep + split-K + 末片直写 C（template <DBUF, LAST_DIRECT> 编译期实例化；归约经 detail::deep_reduce 族，--rv2 选路径，默认 0=直写），与 swsk/deep 逐位等价（bitwise 21/21），CLI 注册名 dsk（K_DSK=15，KERNEL_COUNT=16）
 ```
 
 ### 4.2 cuBLAS FP32 基线（公平性契约）
@@ -130,8 +132,8 @@ regs_smem_note,gpu_state(sm_mhz,temp_c,power_w),git_sha,timestamp
   （背靠背同热状态），行序即配对关系，落独立 `results/paired_ar008.csv`
   （14 列 schema 不变，不污染主 CSV）；`compare.py --paired` 输出对内 delta
   与 delta-RSD——WDDM 动态时钟下绝对值跨会话对比的漂移免疫判定法。
-  `--sk N`（默认 4，1..16，越界 CLI_ERROR）：swsk 专用旋钮，其他 kernel
-  上下文忽略并提示。
+  `--sk N`（默认 4，1..16，越界 CLI_ERROR）：swsk/wsk/dsk 旋钮，其他 kernel
+  上下文忽略并提示；AR010 起 dsk 最优 sk 同 swsk 尺寸带（512³+/1024³→3）。
 
 ### 4.4 正确性判据与测试矩阵
 
@@ -185,10 +187,12 @@ sanitizer：发布前 `compute-sanitizer --tool memcheck` 干净；cp.async 版�
 |------|--------|------|------|------------------|
 | `--bk` | smem1d | {8,16,32} | **32** | 4096³：bk8=2502.8 / bk16=2978.0 / bk32=3226.6 GF（bk32 最优 +8.3%，AR007 固化） |
 | `--lb` | tile2d、ws | {1,2} | 1 | tile2d：114/111 regs 0 spill 并列（AR004）；ws：1 block 31% vs 2 block 62.5% 占用（AR008 消融）。**swpipe/swsk 已移出**（AR008 T003 实测固化：参数化后无约束实例 130 regs → 1 block/SM，1024³ 4314 vs 4617 GF=-7.0%；tile 主体固定 `__launch_bounds__(256,2)`=128 regs 封顶，即 AR007 基线 127 regs 的 2-block 等价物） |
-| `--sk` | swsk、wsk | {1..16} | **4** | AR008 sk 扫描实测回填（初值 4；512³ 预期 8-12）；sk=1 旁路直走 swpipe/wide；wsk 最优 sk 随尺寸：256³→12 / 512³+→3（AR009 T004） |
+| `--sk` | swsk、wsk、dsk | {1..16} | **4** | AR008 sk 扫描实测回填（初值 4；512³ 预期 8-12）；sk=1 旁路直走 swpipe/wide/deep；wsk 最优 sk 随尺寸：256³→12 / 512³+→3（AR009 T004）；dsk 跟随 swsk 带（1024³/512³→3，AR010 实测） |
 | `--stages` | ws | {2,3} | **3** | smem 环深度（stage=8.3KB：2→16.6KB / 3→24.9KB≤32KB）；3 级覆盖 ~2 tile DRAM 抖动，2 级为消融下界 |
 | `--wp` | ws | {1,2} | **2** | producer warp 数（1+8=288 / 2+8=320 线程）；T008 实测 PW=1 全尺寸负收益（单 warp 搬运吞吐不足喂 8 consumer warp） |
 | `--wlb` | wide、wsk | {1,2} | **2** | wide 族 `__launch_bounds__` minBlocksPerMultiprocessor（LB=2 → 64 regs = 2×512 线程恰满 64K → 100% 占用判据）；AR009 T005 裁定占用率非杠杆（LB1/LB2 ±0-4% 符号翻转），旋钮保留作消融复现；与 tile2d/ws 的 `--lb` 分钮避免默认语义污染 |
+| `--dbuf` | deep、dsk | {0,1} | **1** | deep/dsk smem 双缓冲消融（g_deep_dbuf）：dbuf1 全尺寸 +3~14%（AR010 T004 实测固化默认；dbuf0=247r/12416B、dbuf1=241r/24832B，均 0 spill） |
+| `--rv2` | swsk、wsk、dsk | {0,1,3} | **0** | split-K 归约路径消融（g_reduce_ilp2 全局生效）：**0=末片直写 C**（AR010 默认，归约 47→43μs，加法链同序保逐位等价）/ 1=v2 ILP2 / 3=v3 ILP4+`__ldcs` 流式（实测仅省 1.5μs——归约流量地板 355 GB/s ≈ DRAM 峰 80-90%，N5 负结果归档） |
 | `--rounds` | 全部 | ≥1（0 → CLI_ERROR） | 1 | 多轮门控语义见 §4.3；rounds=1 与历史数据逐位可比 |
 
 非默认值跑出的数据行落 CSV 时**必须**带可区分标记（消融经 `SGEMM_CSV` 环境变量
@@ -291,6 +295,26 @@ sk6（wsk +18%/swsk +25% @512³）——split 开销 > warp 并行收益；③T0
 持续态，8/8 探针丝毫不差）、auto v2 dispatch 回填（512³ +21.5% / 1024³ +13.3%）、
 G3 首过（swpipe@4096³ 7185.3 = 7.0T 门 102.6%）。
 
+### Kernel 9 — deep/dsk：深寄存器分块 + 末片直写（AR010，LDS 带宽墙后的设计原则翻转）
+针对 AR009 确证的 LDS.128 带宽墙：设计原则从"提占用"翻转为**降 LDS 频率 + 波次精确**。
+**deep**：Block Tile **256×128×8**、256 线程（16×16）、每线程 **TM16×TN8 = 128 FMA 累加器**
+（LDS:FFMA 比例恶化换计算密度），A 行驻寄存器 16×BK8、B 列 smem 广播（32×8 float4）；
+247/241 regs 0 spill 恰满 64K 寄存器堆（256×247=63,232 → **1 block/SM = 25% 线程占用**，
+与占用率假说证伪自洽）；smem 双缓冲消融固化默认（`--dbuf`，dbuf1 全尺寸 +3~14%）。
+**dsk** = deep + split-K + **末片直写 C**：前 sk-1 片写部分积 P、末片直写 C、归约核读
+C+P[0..sk-2]（ILP4），**加法链与全 P 归约同序 → 逐位等价（bitwise 21/21 专项）**；
+`template <int DBUF, int LAST_DIRECT>` 编译期实例化（4 实例 247/247/243/243 regs 全 0 spill）+
+Out 指针计算下沉回写段——**ptxas 寄存器重排陷阱修复**（运行时分支参数诱发 247/241→243 重排、
+main -4.9% 而 0 spill，"合法但更差"的分配；AR010 核心发现，寄存器敏感 kernel 改动必过
+`-Xptxas -v` 逐实例审计）。1024³ 波次几何：32 tiles × sk3 = 96 blocks = **精确 2 波**。
+归约路径 `--rv2 {0,1,3}`（默认 0=直写；v3 ILP4+流式为 N5 负结果——归约流量地板
+355 GB/s ≈ DRAM 峰 80-90%）。**实测**：deep@2048³ 8568.5 GF = %peak 72.1（同会话 cuBLAS
+82.6%）；dsk@1024³ 同会话 **74.77% 刀锋**（AR009 64.20% → +10.6pp；残差 0.23pp <
+cuBLAS 分母热态摆幅 ±0.65pp = 分母测量下限，门判不放宽）；auto v3（≤4→swsk6 / ≤64→swsk3 /
+≤128→dsk3 / >128→deep）G4'' PASS（4/6 尺寸 %peak +8.6~+19.9%）。五门 v4 终判见
+compare_ar010_paired.md 与 report.md §12；负结果（`__stwt` 写穿 +16μs / 归约 v3 / 运行时
+分支参数）全量归档 bottleneck_analysis.md 闭环 #5。
+
 ---
 
 ## 6. 关键技术决策记录（ADR 摘要）
@@ -337,6 +361,8 @@ G3 首过（swpipe@4096³ 7185.3 = 7.0T 门 102.6%）。
 | AR006-cpasync-double-buffer | Kernel 5 + 终验 | sgemm_cpasync + 消融 + 阶梯图 + README + 归档 | AR005 |
 | AR007-rtx5000-deep-tuning | Kernel 6 + 框架 | swpipe + --rounds 多轮 + BK 固化 + run_matrix/compare（已归档 ST 2/4 门） | AR006 |
 | AR008-adaptive-sgemm | 尺寸自适应 | swsk（split-K）+ Kernel 7 ws（warp 专属化）+ auto 选核 + thermal-paired 协议 + 四门 v2 | AR007 |
+| AR009-occupancy-wall | 占用率墙攻坚 | Kernel 8 wide/wsk（512 线程宽块）+ auto v2 + 稳态测量纪律 + 五门 v3（占用率假说证伪、LDS.128 带宽墙确证） | AR008 |
+| AR010-deep-tile | 深寄存器分块 | Kernel 9 deep/dsk（128 acc/线程 + split-K 末片直写 + ptxas 重排修复）+ auto v3 + %peak 不变量 + 五门 v4 + paper/interview 交付 | AR009 |
 
 ---
 
@@ -358,3 +384,7 @@ G3 首过（swpipe@4096³ 7185.3 = 7.0T 门 102.6%）。
 | named barrier | PTX `bar.sync`/`bar.arrive id, count`——选择性线程组同步，ws 的生产者/消费者握手原语 |
 | warp 专属化 | 加载 warp 与计算 warp 分工的流水结构（Hopper 库标配，ws 在 sm_75 软件复刻） |
 | thermal-paired | 基线/挑战者交替成对测量、对内 delta 判定的热漂移免疫协议（AR008） |
+| %peak | GFLOPS / (6144 FLOP/clk × SM 时钟)——跨钟态不变量（钟频线性 boost 实证误差 0.1%；AR010） |
+| 末片直写 | split-K 末片直写 C、归约读 C+P[0..sk-2] 的归约省流量路径（加法链同序保逐位等价；AR010） |
+| 归约流量地板 | 归约核被 P/C 总流量封顶的带宽极限（355 GB/s ≈ TU104 DRAM 峰 80-90%；AR010） |
+| ptxas 寄存器重排 | 运行时分支参数诱发的"合法但更差"寄存器分配（0 spill 仍 -4.9%；对策=编译期模板实例化；AR010） |

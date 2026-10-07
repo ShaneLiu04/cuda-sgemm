@@ -139,3 +139,32 @@
   fig18（LB 消融三探针裁决）、fig19c（稳态纪律）、fig20（三门 v3 判定）、fig21（全 kernel
   阶梯）；CSV：ablation_ar009/ablation_wlb_ar009/auto_ar009(+dispatchA)/boost_lottery/
   paired_ar009/smoke_wide/smoke_wsk；判定文书 compare_ar009_paired.md。
+
+## AR010 闭环 #5：LDS.128 带宽墙 → deep/dsk 128 累加器深分块 + 末片直写 → 归约流量地板（残差 0.23pp 归档）
+
+- **问题**（AR009 遗留）：LDS.128 带宽墙确证后，swpipe 家族 54.5% peak @1024³ vs cuBLAS 84%——
+  1:16 LDS:FFMA 比例下继续加 warp/块已无意义，必须降每 FFMA 的 LDS 次数。
+- **对策**：Kernel 9 deep——BM256×BN128×BK8、256 线程、每线程 16×8 = **128 FMA 累加器**
+  （LDS:FFMA 恶化换取计算密度），247 regs/0 spill 恰满 64K 寄存器堆（1 block/SM = 25% 线程占用，
+  与 AR009 结论自洽）；A 行驻寄存器 16×BK8、B 列 smem 广播、--dbuf 双缓冲（+3~14% 固化默认）。
+  dsk = deep + split-K（--sk）+ **末片直写 C**：前 sk-1 片写 P、末片直写 C、归约读 C+P[0..sk-2]，
+  加法链与全 P 归约同序 → **bitwise 21/21 逐位等价**。1024³ 波次几何：32 tiles × sk3 =
+  96 blocks = **精确 2 波**（经典 128 tile 为 1.33 波，尾波 33% 浪费）。
+- **验证**：deep@2048³ **8568.5 GF = %peak 72.1**（同会话 cuBLAS 82.6%）；@4096³ auto_v3
+  7970.8 = 68.1%（G3 PASS）；dsk@1024³ 同会话 **74.77%**（AR009 64.20% → +10.6pp）；
+  G1@512³ 75.14% PASS；256³ 同会话反超 cuBLAS **123.7%**；auto v3 六尺寸 %peak
+  +16.4/+16.8/+19.9/+8.6（四个尺寸 ≥+2%，G4'' PASS）。
+- **残差分析（0.23pp 刀锋）**：六变体攻坚链全实测——①跨会话混搭伪影修正（+0.5% 识别）；
+  ②归约 v3 ILP4+__ldcs 仅省 1.5μs：归约流量地板 **355 GB/s ≈ DRAM 峰 80-90%**
+  （20MB 流量 @1024³sk3 物理决定，ILP/提示词无效）；③__stwt 写穿**负结果**（main +16μs，
+  写穿流与 A/B 读 miss 反压；回退默认 store）；④末片直写 +1.1%（归约 47→43μs）；⑤ptxas
+  **寄存器重排陷阱**：运行时分支参数诱发 247/241→243 重排（main -4.9%，0 spill——"合法但更差"
+  的分配），	emplate <DBUF, LAST_DIRECT> 编译期实例化 + Out 指针下沉回写段修复，热态探针
+  **6312-6321 GF** 历史最佳；⑥终态缺口 0.23pp < cuBLAS 分母热态摆幅 ±0.65pp——**分母测量
+  下限**，门判 FAIL 不放宽，L2 persistence/单核确定性归约列 backlog。
+- **证据链**：fig22（deep 结构+资源包络）、fig23（LDS 模型 vs 实测）、fig24（dbuf/sk 消融）、
+  fig25（G2 钟态考古）、fig26（五门 v4）、fig27（阶梯 v4）、fig28（auto v3 保真）；
+  CSV：deep_ar010/g2_ar010/g2_boost_ar010/paired_ar010(108 行)/paired_ar010_predirect/
+  auto_ar010(24 行)；判定文书 compare_ar010_paired.md；论文体 paper_sgemm_turing.md。
+- **新瓶颈移交**：归约段已到 DRAM 流量地板 + G1@1024³ 分母测量下限——后续杠杆为系统级
+  （L2 persistence window 钉 C、单核确定性 last-block 归约），kernel 级单变量优化空间收尽。

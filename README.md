@@ -6,9 +6,7 @@
 
 **十六版 SGEMM 逐层优化 · Quadro RTX 5000（Turing sm_75，48 SM）· 严格 FP32**
 
-[![star](https://gitee.com/liu-xingyan04/cuda-sgemm/badge/star.svg)](https://gitee.com/liu-xingyan04/cuda-sgemm)
-[![fork](https://gitee.com/liu-xingyan04/cuda-sgemm/badge/fork.svg)](https://gitee.com/liu-xingyan04/cuda-sgemm/members)
-![CUDA](https://img.shields.io/badge/CUDA-12.5-76B900?logo=nvidia&logoColor=white)
+[![CUDA](https://img.shields.io/badge/CUDA-12.5-76B900?logo=nvidia&logoColor=white)
 ![Arch](https://img.shields.io/badge/arch-sm__75%20Turing%2048SM-76B900?logo=nvidia&logoColor=white)
 ![Precision](https://img.shields.io/badge/precision-strict%20FP32%20(IEEE%20FMA)-blue)
 ![Kernels](https://img.shields.io/badge/kernels-16%20variants%20K0--K9-purple)

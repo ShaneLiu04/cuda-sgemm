@@ -501,3 +501,73 @@ Pareto 平衡点。wide/wsk 保留为教学阶梯（数值同源、sanitizer 全
 `results/boost_lottery_ar009.csv`、`results/paired_ar009.csv`、
 `results/smoke_wide_ar009.csv`、`results/smoke_wsk_ar009.csv`、
 `results/compare_ar009_paired.md`（五门判定表）。
+
+---
+
+## 12. AR010：深寄存器分块攻坚（Kernel 9 deep/dsk 128 累加器 + 末片直写 + auto v3 + 五门 v4）
+
+**动机**：AR009 证伪占用率假说并确立 **LDS.128 带宽墙**后，设计原则翻转为"降 LDS 频率 +
+波次精确"：每线程更多 FMA 累加器（LDS:FFMA 比例恶化换计算密度），1 block/SM 恰满寄存器堆。
+deep（Kernel 9）= BM256×BN128×BK8、256 线程、每线程 16×8=**128 acc**、247 regs/0 spill
+（256×247=63,232 恰满 64K）；A 行驻寄存器 + B 列 smem 广播（32×8 float4 双缓冲，--dbuf 钮）。
+dsk = deep + split-K（--sk）+ **末片直写 C**（--rv2 0 默认）：前 sk-1 片写 P、末片直写 C、
+归约核读 C+P[0..sk-2]，加法链与全 P 归约**同序** → 逐位等价。
+
+**交付**：
+
+| 交付 | 内容 | 证据 |
+|------|------|------|
+| deep（Kernel 9） | 深寄存器分块主核；<DBUF> 模板实例 dbuf0=247r/12416B、dbuf1=241r/24832B 全 0 spill | 146/146；memcheck/racecheck 0；build.log ptxas 逐实例审计 |
+| dsk（K9 变体） | deep + split-K；	emplate <int DBUF, int LAST_DIRECT> 编译期实例化（4 实例 247/247/243/243 regs 全 0 spill）+ Out 指针下沉回写段 | **bitwise 21/21**（BK=8 同切分 + 单一归约入口 + 三重锚点 + 确定性双跑） |
+| 末片直写 | 归约 47→43μs（同会话 +1.1%）；加法链同序保逐位等价 | paired_ar010.csv vs paired_ar010_predirect.csv |
+| ptxas 重排修复 | 运行时分支参数诱发 247/241→243 重排（main -4.9%）；模板化+指针下沉后复原，dsk 热态探针 **6312-6321 GF** 历史最佳 | build.log（T007d4 四实例审计） |
+| auto v3 | dispatch 三代：≤4→swsk6 / ≤64→swsk3 / ≤128 带判（1024³→dsk3） / >128→deep（2048³+） | G4'' PASS（4/6 尺寸 +8.6~+19.9% %peak）；保真 A-B-A-B 10/12 ≤0.6pp |
+| 五门 v4 | 6 尺寸 × 6 kernel × 3 轮（108 行），cublas 每轮首跑锚定 + 47°C 冷却门 + boost 轮剔除 | paired_ar010.csv + compare_ar010_paired.md + fig26/27 |
+
+**五门 v4 判定（3.5 PASS / 1 刀锋 FAIL）**：
+
+| 门 | 判定 | 数据 |
+|----|------|------|
+| G1@512³ ≥75% | **PASS** | swsk_sk3 4282.1 / cuBLAS 5698.8 = **75.14%** |
+| G1@1024³ ≥75% | **刀锋 FAIL** | dsk_sk3 6279.2 / cuBLAS 8397.5 = **74.77%**（差 0.23pp < cuBLAS 分母热态摆幅 ±0.65pp；AR009 64.20% → +10.6pp） |
+| G2@256³ ≥1618.2 | **PASS（钟态匹配）** | %peak 15.63 vs 门源 14.04-14.16（+10.9% like-for-like）；1860 投影 1786.2 ≥ 门；1620 绝对值 1555.8 = 门 96.1%；同会话反超 cuBLAS **123.7%** |
+| G3@4096³ ≥7.0TF | **PASS** | auto_v3 7970.8@1905（%peak 68.1，cuBLAS 10304.9=77.35%）；2048³ deep 8568.5（%peak 72.1，82.6%） |
+| G4'' auto v3 ≥4/6 +2% | **PASS** | 1024³ +16.41 / 1000×1016 +16.77 / 2048³ +19.91 / 4096³ +8.61（%peak） |
+| G5'' 保真 ≤2pp | **PASS** | 10/12 对 ≤0.6pp（2 离群有 min 逐位同硬证据）；配对极差 median 0.31pp |
+
+### 12.1 六变体攻坚链（G1@1024³ 0.23pp 残差的完整因果归档）
+
+会话偏移修正（跨会话混搭伪影 +0.5% 识别）→ 归约 v3 ILP4+__ldcs（仅省 1.5μs：归约流量地板
+355 GB/s ≈ DRAM 峰 80-90%，20MB 流量 @1024³sk3 物理决定）→ __stwt 写穿（**负结果** main +16μs，
+写穿流与 A/B 读 miss 反压；归约持平，回退默认 store）→ 末片直写（+1.1%，省 P 末片写+C 读回合，
+C 读 L2 命中被 A/B 流驱逐）→ ptxas 重排修复（+3.4% main 复原 247/243 位）→ 模板化+指针下沉
+（终态热态 6312-6321 覆盖 6283 绝对线）。**残差 0.23pp 小于分母测量下限**，门判不放宽；
+剩余杠杆（L2 persistence window 钉 C、单核确定性归约）列 backlog。
+
+### 12.2 负结果与测量方法学沉淀
+
+- **负结果**：__stwt 写穿、归约 v3 ILP4（对 dsk -4% 早于直写）、运行时分支参数（N6 重排陷阱）
+  ——与 AR006/008/009 构成完整负结果档案（paper §5.4 六条）；
+- **%peak 不变量**：钟频线性 boost 实证（6296@1620 → 7276@1950，误差 0.1%）；DVFS 双域
+  （重核 1920-1950 / 小突发 1620 同会话并存，三次独立验证；cuBLAS 8377/8432 双簇即此效应）；
+- **交付文档**：esults/paper_sgemm_turing.md（CCF-A 体例全量证据链）、
+  esults/interview_narrative.md（STAR 叙事 + 数字锚点）。
+
+---
+
+## 附录 D：AR010 图表索引（结论 → 图 → 数据，三链可溯）
+
+| 结论 | 图表 | 数据源 |
+|------|------|--------|
+| deep 结构：128 acc/线程 + 双缓冲 + 寄存器堆恰满 | fig22_deep_structure | build.log ptxas + smoke_deep_ar010.csv |
+| LDS.128 带宽墙模型 vs deep 实测（LDS:FFMA 比例设计） | fig23_deep_lds_model | deep_ar010.csv + 算法强度模型 |
+| deep 消融：dbuf/sk 全尺寸扫描（dbuf1 固化 +3~14%） | fig24_deep_ablation | deep_ar010.csv |
+| G2 攻坚：256³ 钟态考古（%peak 对齐 + 1860 投影） | fig25_g2_attack | g2_ar010.csv + g2_boost_ar010.csv（48 行） |
+| 五门 v4 判定（比例门 + %peak 双口径） | fig26_gates_v4 | paired_ar010.csv（108 行） |
+| 全 kernel 阶梯 v4（六尺寸 winner 高亮） | fig27_ladder_v4 | paired_ar010.csv |
+| auto v3 dispatch 保真（A-B-A-B 交替） | fig28_auto_v3 | auto_ar010.csv（24 行） |
+
+原始数据：esults/deep_ar010.csv、esults/g2_ar010.csv、esults/g2_boost_ar010.csv、
+esults/paired_ar010.csv（+paired_ar010_predirect.csv 直写前基线）、esults/auto_ar010.csv、
+esults/compare_ar010_paired.md（五门 v4 终判表）、esults/paper_sgemm_turing.md、
+esults/interview_narrative.md。

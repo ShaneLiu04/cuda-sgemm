@@ -37,11 +37,14 @@ cuda-sgemm/
 
 - **消融旋钮**（AR008 起冻结，默认值与依据见详设 §4.6）：`--bk`（smem1d，默认 32）、
   `--lb`（tile2d/ws，默认 1；swpipe/swsk 固化 128-reg 封顶，AR008 实测收窄）、
-  `--sk`（swsk/wsk split-K 片数，默认 4，1..16）、
+  `--sk`（swsk/wsk/dsk split-K 片数，默认 4，1..16）、
   `--stages`（ws smem 环深度，默认 3，2/3）、
   `--wp`（ws producer warp 数，默认 2，1/2）、
   `--wlb`（wide/wsk launch_bounds minBlocks，默认 2，1/2；与 tile2d/ws 的 --lb 分钮，
   AR009 T005 实测裁定占用率非杠杆，旋钮保留作消融复现）、
+  `--dbuf`（deep/dsk smem 双缓冲，默认 1；dbuf1 全尺寸 +3~14%，AR010 T004 实测固化）、
+  `--rv2`（swsk/wsk/dsk 归约路径，默认 0=末片直写 C；1=v2 ILP2 / 3=v3 ILP4+流式
+  （AR010 实测 v3 仅省 1.5μs，归约流量地板 355 GB/s，负结果归档））、
   `--rounds N`（多轮门控统计，默认 1，0 → CLI_ERROR）。
   非默认参数跑出的数据必须经 `SGEMM_CSV` 环境变量分流到独立 CSV，禁止污染主 `performance.csv`。
 

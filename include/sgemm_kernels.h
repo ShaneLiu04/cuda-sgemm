@@ -59,9 +59,10 @@ void sgemm_wsk(const float* A, const float* B, float* C, int M, int N, int K);
 // 几何使 B 片段保持 stride-2 quad（swpipe swizzle 消冲突域逐位继承）、A 片段
 // warp 级广播；占用 1 block/SM = 8 warp = 25%，以 128 条独立 FMA 链的 ILP
 // 替代 TLP（与 AR009 占用率证伪构成完整消融矩阵）。__launch_bounds__(256,1)
-// = 255 regs 封顶，0 spill 硬门。--dbuf 消融（g_deep_dbuf，默认 0）：
-// 0 = 单缓冲双同步（swpipe 同构）；1 = 双缓冲单同步（As[2]+Bs[2]=24832B，
-// 同步 2→1/tile，25% 占用下的延迟对冲路径）。
+// 下 ptxas 实测 247 regs（dbuf0）/241 regs（dbuf1），0 spill 硬门（256×247=63,232
+// 恰满 64K 寄存器堆）。--dbuf 消融（g_deep_dbuf，默认 1，AR010 T004 实测
+// dbuf1 全尺寸 +3~14% 固化）：0 = 单缓冲双同步（swpipe 同构，12416B）；
+// 1 = 双缓冲单同步（As[2]+Bs[2]=24832B，同步 2→1/tile，25% 占用下的延迟对冲路径）。
 void sgemm_deep(const float* A, const float* B, float* C, int M, int N, int K);
 // Kernel 9 变体（AR010）：deep 的 split-K——主体经 detail::deep_tile_grid
 // 参数化复用（z 切片 + Out_base），归约复用 detail::swsk_reduce；波几何：
