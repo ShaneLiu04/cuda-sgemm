@@ -364,6 +364,89 @@ int main(int argc, char** argv) {
                     g, r);
     }
 
+    // ---- AR012 T003 swizzle Green：host UT（纯函数双射/组序/恒等）+ device
+    //      bitwise 锚（remap 只改 tile 归属、K 链/数值序不变 → 逐位）----
+    std::printf("------------------------------------------------------------------\n");
+    std::printf(" AR012 T003 swizzle_tile host UT (pure function)\n");
+    std::printf("------------------------------------------------------------------\n");
+    {   // 网格 {(gn,gm)} 覆盖整除/非整除/退化；G∈{4,8,16}；每组合并断言：
+        //  ① swz=0 恒等 ② 值域界内 ③ 双射（每 tile 恰一次）④ 组序（组内
+        //  m 最快：连续 l 满足 (m'+1,n') 或 (m 回卷, n'+1)）
+        const int grids[][2] = {{8, 4}, {16, 8}, {32, 16},
+                                {5, 3}, {7, 11}, {1, 1}};
+        const int Gs[] = {4, 8, 16};
+        for (const auto& gr : grids) {
+            const int gn = gr[0], gm = gr[1];
+            for (int G : Gs) {
+                ++total;
+                bool ok = true;
+                std::vector<char> seen((size_t)gm * gn, 0);
+                int pm = -1, pn = -1;
+                for (int l = 0; l < gm * gn; ++l) {
+                    const int bx = l % gn, by = l / gn;
+                    int mi, ni;   // ① 恒等（swz=0 → 原线性光栅坐标）
+                    sgemm::detail::swizzle_tile(bx, by, gn, gm, 0, G, &mi, &ni);
+                    if (mi != by || ni != bx) ok = false;
+                    int m2, n2;
+                    sgemm::detail::swizzle_tile(bx, by, gn, gm, 1, G, &m2, &n2);
+                    if (m2 < 0 || m2 >= gm || n2 < 0 || n2 >= gn) ok = false;
+                    if (seen[(size_t)m2 * gn + n2]++) ok = false;  // ③ 双射
+                    if (l > 0) {                                    // ④ 组序
+                        const bool step =
+                            (m2 == pm + 1 && n2 == pn) ||
+                            (pm == gm - 1 && m2 == 0 && n2 == pn + 1);
+                        if (!step) ok = false;
+                    }
+                    pm = m2; pn = n2;
+                }
+                if (ok) ++passed; else all_ok = false;
+                char label[64];
+                std::snprintf(label, sizeof(label),
+                              "swizzle_tile bij+order gn=%d gm=%d G=%d",
+                              gn, gm, G);
+                std::printf("  %-58s  %s\n", label, ok ? "PASS" : "FAIL");
+            }
+        }
+    }
+    {   // 锚 10：dsk swizzle remap-neutral（dsk 经 deep_tile_grid 咽喉点继承
+        //  SWZ 实例；z 维不参与重排 → 片序/归约链不变）
+        const int swz = sgemm::g_swz;
+        std::vector<float> r, g;
+        run_dump(sgemm::K_DSK, 1024, 1024, 1024, r);
+        sgemm::g_swz = 1;
+        run_dump(sgemm::K_DSK, 1024, 1024, 1024, g);
+        sgemm::g_swz = swz;
+        anchor_case("dsk(swz=1) == dsk(swz=0) remap-neutral @1024^3", g, r);
+    }
+    {   // 锚 11：边界谓词 × swz1——M=1000/N=1016（非 tile 倍数 → 部分 tile
+        //  谓词）+ K=516（%BK!=0 → 末 k-tile 部分覆盖）；尾组 G_eff 收窄 +
+        //  谓词与 remap 正交性（tile 归属变、边界判定不变）。deep 与 dsk
+        //  （split-K z 维组合）双验
+        const int swz = sgemm::g_swz;
+        std::vector<float> r, g;
+        run_dump(sgemm::K_DEEP, 1000, 1016, 516, r);
+        sgemm::g_swz = 1;
+        run_dump(sgemm::K_DEEP, 1000, 1016, 516, g);
+        sgemm::g_swz = swz;
+        anchor_case("deep(swz=1) == deep(swz=0) boundary @1000x1016x516", g, r);
+        std::vector<float> r2, g2;
+        run_dump(sgemm::K_DSK, 1000, 1016, 516, r2);
+        sgemm::g_swz = 1;
+        run_dump(sgemm::K_DSK, 1000, 1016, 516, g2);
+        sgemm::g_swz = swz;
+        anchor_case("dsk(swz=1) == dsk(swz=0) boundary @1000x1016x516", g2, r2);
+    }
+    {   // 锚 12：回退路径 × swz1——N%4!=0 → tile2d 谓词化回退（旋钮不得
+        //  影响回退正确性，g_swz=1 不得崩溃/不得走 remap 主路径）
+        const int swz = sgemm::g_swz;
+        std::vector<float> r, g;
+        run_dump(sgemm::K_DEEP, 999, 1001, 997, r);
+        sgemm::g_swz = 1;
+        run_dump(sgemm::K_DEEP, 999, 1001, 997, g);
+        sgemm::g_swz = swz;
+        anchor_case("deep(swz=1) fallback tile2d @999x1001x997", g, r);
+    }
+
     std::printf("==================================================================\n");
     std::printf(" SUMMARY: %d / %d PASS (incl. 9 bitwise/rel anchors)  ->  %s\n",
                 passed, total, all_ok ? "ALL PASS" : "FAILED");

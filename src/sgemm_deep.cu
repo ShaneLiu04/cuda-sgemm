@@ -98,19 +98,34 @@ __device__ __forceinline__ float4 load_zero_guard(const float* base, long long i
 //   实例矩阵受控：BPF/PHASE 仅 DBUF=1 族 + LAST_DIRECT∈{0,1}，组合
 //   (bpf,phase)∈{(1,0),(0,1),(1,1)}（{on,off}² 因果分解需要 both-on，
 //   T004 修订）；DBUF=0 仅现役 <0,ld,0,0>。
-template <int DBUF, int LAST_DIRECT, int BPF = 0, int PHASE = 0>
+//
+// AR012 T003 FR2：SWZ 模板维（实例 ×2）——swz=1 时 block 头部对 (bx,by)
+// 做分组列序 remap（detail::swizzle_tile，组宽 G = 运行时参数 swz_g =
+// g_swzg，4/8/16；每 block 头部一次整除，主循环零扰动）；swz=0 实例编译
+// 期剔除 remap 代码 + swz_g 参数不被引用 → 现役 codegen 不变（AR011 T004
+// 手法）。z 维（dsk split-K 切片）不参与重排。remap 纯改 tile 归属，K 链
+// 与数值序不变 → swz on/off 输出逐位一致（suite 锚）。L2 波足迹动机：
+// design §4.2.1（2048³ G=8：B 全宽重读 16.8MB → 6.3MB）。
+template <int DBUF, int LAST_DIRECT, int BPF = 0, int PHASE = 0, int SWZ = 0>
 __global__ __launch_bounds__(256, 1)
 void sgemm_deep_kernel(const float* __restrict__ A,
                        const float* __restrict__ B,
                        float* __restrict__ Out_base,
                        float* __restrict__ Out_last,
                        int M, int N, int K,
-                       int tps, int num_tiles) {
+                       int tps, int num_tiles, int swz_g) {
     // smem：A 转置 [DBUF][BK][BM+PAD]；B swizzle [DBUF][BK][BN]
     __shared__ __align__(16) float As[DBUF ? 2 : 1][BK][BM + PAD_A];
     __shared__ __align__(16) float Bs[DBUF ? 2 : 1][BK][BN];
 
-    const int bx = blockIdx.x, by = blockIdx.y;
+    int bx = blockIdx.x, by = blockIdx.y;
+    if (SWZ) {   // 分组列序 remap：l = bx + by*grid_n → (m', n')（见上注）
+        int m2, n2;
+        sgemm::detail::swizzle_tile(bx, by, gridDim.x, gridDim.y,
+                                    1, swz_g, &m2, &n2);
+        by = m2;
+        bx = n2;
+    }
     const int z  = blockIdx.z;                  // split-K 切片号（单波恒 0）
     const int t0 = z * tps;
     const int t1 = min(t0 + tps, num_tiles);
@@ -288,8 +303,10 @@ void deep_tile_grid(const float* A, const float* B, float* Out_base,
                     int grid_n, int grid_m, int grid_z) {
     const dim3 grid(grid_n, grid_m, grid_z);
     const dim3 block(16, 16, 1);
-    sgemm::g_launch_swz = sgemm::g_swz;   // T001 接线探针（device remap 由 T003 接入）
+    sgemm::g_launch_swz = sgemm::g_swz;   // T001 接线探针（T003 起驱动 SWZ 实例）
     const int last_direct = (Out_last != Out_base) ? 1 : 0;
+    const int swz = (sgemm::g_swz != 0) ? 1 : 0;   // SWZ 实例维（组宽经参数）
+    const int swz_g = sgemm::g_swzg;
     // AR011 T004：BPF/PHASE 消融实例矩阵（受控，design §4.2.5）——仅 DBUF=1
     // 族 × (bpf,phase)∈{00,10,01,11}（both-on 支撑 {on,off}² 因果分解）；
     // DBUF=0 仅现役 <0,ld,0,0>（main.cu 已对 --dbuf 0 + --bpf/--phase 打
@@ -297,27 +314,47 @@ void deep_tile_grid(const float* A, const float* B, float* Out_base,
     if (sgemm::g_deep_dbuf) {
         const int b = (sgemm::g_deep_bpf != 0) ? 1 : 0;
         const int p = (sgemm::g_deep_phase != 0) ? 1 : 0;
-#define LAUNCH_DEEP(BPF_, PH_)                                            \
-        do {                                                              \
-            if (last_direct)                                              \
-                sgemm_deep_kernel<1, 1, BPF_, PH_><<<grid, block>>>(      \
-                    A, B, Out_base, Out_last, M, N, K, tps, num_tiles);   \
-            else                                                          \
-                sgemm_deep_kernel<1, 0, BPF_, PH_><<<grid, block>>>(      \
-                    A, B, Out_base, Out_last, M, N, K, tps, num_tiles);   \
+#define LAUNCH_DEEP(BPF_, PH_, SWZ_)                                        \
+        do {                                                                \
+            if (last_direct)                                                \
+                sgemm_deep_kernel<1, 1, BPF_, PH_, SWZ_><<<grid, block>>>(  \
+                    A, B, Out_base, Out_last, M, N, K, tps, num_tiles,      \
+                    swz_g);                                                 \
+            else                                                            \
+                sgemm_deep_kernel<1, 0, BPF_, PH_, SWZ_><<<grid, block>>>(  \
+                    A, B, Out_base, Out_last, M, N, K, tps, num_tiles,      \
+                    swz_g);                                                 \
         } while (0)
-        if (b && p)      LAUNCH_DEEP(1, 1);
-        else if (b)      LAUNCH_DEEP(1, 0);
-        else if (p)      LAUNCH_DEEP(0, 1);
-        else             LAUNCH_DEEP(0, 0);
+        if (swz) {
+            if (b && p)      LAUNCH_DEEP(1, 1, 1);
+            else if (b)      LAUNCH_DEEP(1, 0, 1);
+            else if (p)      LAUNCH_DEEP(0, 1, 1);
+            else             LAUNCH_DEEP(0, 0, 1);
+        } else {
+            if (b && p)      LAUNCH_DEEP(1, 1, 0);
+            else if (b)      LAUNCH_DEEP(1, 0, 0);
+            else if (p)      LAUNCH_DEEP(0, 1, 0);
+            else             LAUNCH_DEEP(0, 0, 0);
+        }
 #undef LAUNCH_DEEP
     } else {
-        if (last_direct)
-            sgemm_deep_kernel<0, 1><<<grid, block>>>(A, B, Out_base, Out_last,
-                                                     M, N, K, tps, num_tiles);
-        else
-            sgemm_deep_kernel<0, 0><<<grid, block>>>(A, B, Out_base, Out_last,
-                                                     M, N, K, tps, num_tiles);
+        if (swz) {
+            if (last_direct)
+                sgemm_deep_kernel<0, 1, 0, 0, 1><<<grid, block>>>(
+                    A, B, Out_base, Out_last, M, N, K, tps, num_tiles, swz_g);
+            else
+                sgemm_deep_kernel<0, 0, 0, 0, 1><<<grid, block>>>(
+                    A, B, Out_base, Out_last, M, N, K, tps, num_tiles, swz_g);
+        } else {
+            if (last_direct)
+                sgemm_deep_kernel<0, 1><<<grid, block>>>(A, B, Out_base,
+                                                         Out_last, M, N, K,
+                                                         tps, num_tiles, swz_g);
+            else
+                sgemm_deep_kernel<0, 0><<<grid, block>>>(A, B, Out_base,
+                                                         Out_last, M, N, K,
+                                                         tps, num_tiles, swz_g);
+        }
     }
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {

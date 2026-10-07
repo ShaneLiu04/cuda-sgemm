@@ -111,6 +111,29 @@ void swsk_reduce(const float* P, float* C, long long mn, int sk);
 // AR010 T007：last-slice-direct 归约（dsk 主路径）——P 含 sk-1 个切片，
 // C[i] = ((0+P_0)+…+P_{sk-2})+C[i]，链序与 swsk_reduce v1 逐位一致
 void swsk_reduce_direct(const float* P, float* C, long long mn, int sk);
+// AR012 FR2/T003：L2 块序 swizzle 纯函数 remap（deep/dsk/streamk 头部共享；
+// host UT 与 device 同源）。线性光栅 l = bx + by*grid_n（bx = n-tile 最快）
+// → 分组列序：组宽 G（每组 grid_m 行 × G 列 tile），组内 m 最快，尾组
+// G_eff = min(G, grid_n - g*G) 收窄：
+//   g  = l / (grid_m*G)；r = l - g*grid_m*G（r < grid_m*G_eff 恒成立）
+//   m' = r % grid_m；n' = g*G + r / grid_m
+// swz=0 → 恒等（m'=by, n'=bx）。纯重排：tile 集合与每 tile 的 K 链不变
+// → 输出 C 逐位不变（bitwise 锚；design §4.2.1 波足迹核算）。
+// 寄存器预算：6 整数运算 + 1 整除（每 block 头部一次），ptxas 增量 ≤2 门。
+__host__ __device__ inline
+void swizzle_tile(int bx, int by, int grid_n, int grid_m,
+                  int swz, int G, int* m_out, int* n_out) {
+    if (!swz) {
+        *m_out = by;
+        *n_out = bx;
+        return;
+    }
+    const int l = bx + by * grid_n;
+    const int g = l / (grid_m * G);
+    const int r = l - g * grid_m * G;
+    *m_out = r % grid_m;
+    *n_out = g * G + r / grid_m;
+}
 }}
 
 // ---- 消融旋钮（由 main CLI 注入；默认值与详设 §4.6 一致）----------------
