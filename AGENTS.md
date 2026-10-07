@@ -106,6 +106,7 @@ cuda-sgemm/
 - 每个任务完成即提交：`feat(AR00x): T00x 任务简述`；实验性调参分支不合并主干，但数据可引用。
 - `results/` 下 CSV 与报告必须与产生它的代码 commit 同步提交。
 - 禁止提交 `*.ncu-rep` 之外的大体积二进制；禁止提交任何凭空生成的性能数据。
+- **企业代理推送约束**（2026-10-07 实证）：git 出口走 NetentSec SWG 代理（proxyhk:8080），大 POST 体（~100KB+）被 403 拦截（"HIS Proxy Notification" 页，gitee 本身可达）。对策：大 commit 拆分逐个 push；`git push` 整体 403 时用 `python tools\push_min_pack.py [remote] [ref]`（差集最小对象包 + curl 直推 receive-pack）。凭据一律经 `git credential` 内存传递，禁止入码、入日志、入临时文件留档。
 
 ## 9. 已知风险速查（详见详设 §7）
 
