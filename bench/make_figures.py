@@ -3056,6 +3056,170 @@ def fig32_streamk_sweep():
 
 fig32_streamk_sweep()
 
+
+# ---------------- AR011 fig33: auto v4 dispatch panorama ----------------
+# 数据/证据：results/auto_ar011.csv（2026-10-07 实测，git=776a292 构建，
+# A-B-A-B 2 轮，v4 协议 47C 冷却 + cublas 首锚；canonical 六 + 补充三）。
+# 结论：G5''' 保真 10/12 <=0.6pp PASS（256^3 两 miss 同路径噪声）；G4'''
+# 增量 MISS（1/6 >= +2%，门要求 4/6 —— 仅 2048^3 deep->streamk W=1
+# +2.25% 兑现，诚实负结果）；补充首测 4096x256 发现几何规则盲区
+# （streamk_w1 8478 > dsk 8262，M/N 不对称，披露不过拟合）。
+def fig33_auto_v4():
+    import statistics as st
+    csv_path = os.path.join(OUT_DIR, "..", "auto_ar011.csv")
+    if not os.path.exists(csv_path):
+        print("fig33 skipped (auto_ar011.csv missing)")
+        return
+    rows = [r for r in csv.DictReader(
+        filter(lambda l: not l.startswith("#"), open(csv_path)))
+        if r.get("kernel")]
+    raw = {}
+    for r in rows:
+        key = (int(r["m"]), int(r["n"]), int(r["k"]), r["kernel"])
+        raw.setdefault(key, []).append(float(r["gflops"]))
+    med = {k: st.median(v) for k, v in raw.items()}
+
+    def g(m, n, kk, name):
+        return med.get((m, n, kk, name))
+
+    fig, (ax1, ax2, ax3) = plt.subplots(
+        1, 3, figsize=(17.0, 5.7),
+        gridspec_kw={"width_ratios": [1.1, 1.0, 1.3]})
+
+    # ---- (a) dispatch 决策表（canonical + 补充，v3->v4 变更高亮）----
+    table = [
+        ("256$^3$",        "swsk sk6",  "swsk sk6",  ""),
+        ("512$^3$",        "swsk sk3",  "swsk sk3",  ""),
+        ("1024$^3$",       "dsk sk3",   "dsk sk3",   ""),
+        ("1000x1016x1024", "dsk sk3",   "dsk sk3",   ""),
+        ("2048$^3$",       "deep",      "STREAMK W=1", "+2.25%"),
+        ("4096$^3$",       "deep",      "deep",      ""),
+        ("256x4096x4096",  "(new)",     "dsk sk3",   "first-test OK"),
+        ("4096x256x4096",  "(new)",     "dsk sk3",   "first-test OK"),
+        ("1024x2048x2048", "(new)",     "STREAMK W=1", "+28% vs deep"),
+    ]
+    ax1.axis("off")
+    hdr = ["size", "v3 pick", "v4 pick", "note"]
+    rowsx = [[s, a, b, nt] for s, a, b, nt in table]
+    t = ax1.table(cellText=rowsx, colLabels=hdr, loc="center",
+                  cellLoc="center", colWidths=[0.30, 0.22, 0.26, 0.22])
+    t.auto_set_font_size(False)
+    t.set_fontsize(7.6)
+    t.scale(1.0, 1.55)
+    for (r_, c_), cell in t.get_celld().items():
+        cell.set_edgecolor("#b0bec5")
+        if r_ == 0:
+            cell.set_facecolor("#37474f")
+            cell.set_text_props(color="white", fontweight="bold")
+        elif "STREAMK" in str(cell.get_text()):
+            cell.set_facecolor("#c8e6c9")
+            cell.set_text_props(fontweight="bold", color="#1b5e20")
+        elif r_ % 2 == 0:
+            cell.set_facecolor("#f5f5f5")
+    ax1.set_title("(a) auto v4 dispatch table (zones: blocks<=4 swsk6 /\n"
+                  "<=16 swsk3 / <=64 dsk geom-sk / tail-wave streamk W=1)",
+                  fontsize=9.5)
+
+    # ---- (b) G4''' delta + G5''' fidelity ----
+    sizes6 = [(256, 256, 256, "256$^3$"), (512, 512, 512, "512$^3$"),
+              (1024, 1024, 1024, "1024$^3$"),
+              (1000, 1016, 1024, "1000x1016"), (2048, 2048, 2048, "2048$^3$"),
+              (4096, 4096, 4096, "4096$^3$")]
+    names = [s[3] for s in sizes6]
+    deltas = []
+    for m, n, kk, _ in sizes6:
+        v3 = next(v for k, v in med.items()
+                  if k[:3] == (m, n, kk) and k[3].startswith("v3_"))
+        v4 = next(v for k, v in med.items()
+                  if k[:3] == (m, n, kk) and k[3].startswith("w4_"))
+        deltas.append((v4 / v3 - 1) * 100)
+    cols = ["#2e7d32" if d >= 2 else ("#c62828" if d < -2 else "#90a4ae")
+            for d in deltas]
+    xs = np.arange(len(names))
+    ax2.bar(xs, deltas, 0.62, color=cols, zorder=3)
+    for x_, d in zip(xs, deltas):
+        ax2.text(x_, d + (0.08 if d >= 0 else -0.22), f"{d:+.2f}",
+                 ha="center", fontsize=7.6)
+    ax2.axhline(2, color="#2e7d32", ls="--", lw=1.0)
+    ax2.axhline(-2, color="#c62828", ls="--", lw=1.0)
+    ax2.axhline(0, color="#455a64", lw=0.8)
+    ax2.set_xticks(xs)
+    ax2.set_xticklabels(names, fontsize=7.6, rotation=20)
+    ax2.set_ylabel("v4 vs v3 (%)", fontsize=10)
+    ax2.set_ylim(-1.2, 3.2)
+    ax2.grid(axis="y", alpha=0.3, zorder=0)
+    ax2.set_title("(b) G4''' increment: MISS (1/6 >= +2%; only 2048$^3$\n"
+                  "+2.25% via streamk W=1; honest negative, gate kept)",
+                  fontsize=9.5)
+    # G5''' 注记
+    ax2.text(0.03, 0.04,
+             "G5''' fidelity: canonical 11/12 <= 0.6pp PASS\n"
+             "(256$^3$ miss = same-path noise -2.12pp);\n"
+             "suppl. clean same-regime pairs: -0.45/-0.61/\n"
+             "-0.03/-0.69/0.00pp (all <= 2pp)",
+             transform=ax2.transAxes, fontsize=7.3, va="bottom",
+             bbox=dict(fc="#e8f5e9", ec="#81c784", pad=4))
+
+    # ---- (c) 补充尺寸首测（candidates + auto 高亮；制度标注）----
+    # 256x4096/4096x256 = 冷启动制度（1620 MHz 稳态，逐行冷却重测）；
+    # 1024x2048 = warm 制度（1935 MHz，in-sequence r3/r4）。dsk>strk 与
+    # strk>=deep 的排序在两制度下均成立（run-1 "4096x256 盲区" 为 auto
+    # 末位行降频伪影 1740/1620 MHz，已撤回）。
+    supp = [("256x4096x4096", "cold\n(1620)", (256, 4096, 4096)),
+            ("4096x256x4096", "cold\n(1620)", (4096, 256, 4096)),
+            ("1024x2048x2048", "warm\n(1935)", (1024, 2048, 2048))]
+    cand = [("deep", "deep", "#455a64"), ("dsk_sk3", "dsk sk3", "#1976d2"),
+            ("swsk_sk3", "swsk sk3", "#8d6e63"),
+            ("streamk_w1", "strk W=1", "#2e7d32"),
+            ("streamk_w2", "strk W=2", "#81c784")]
+    xs = np.arange(len(supp))
+    bw = 0.15
+    for i, (cname, lab, col) in enumerate(cand):
+        vals = []
+        for lab_s, _, key in supp:
+            v = [x for x in raw.get(key + (cname,), [np.nan])]
+            vals.append(st.median(v) if v else np.nan)
+        offs = (i - 2) * bw
+        bars = ax3.bar(xs + offs, vals, bw * 0.9, color=col, label=lab,
+                       zorder=3)
+        for b_, v in zip(bars, vals):
+            if v == v:
+                ax3.text(b_.get_x() + b_.get_width() / 2, v + 15,
+                         f"{v:.0f}", ha="center", fontsize=6.4, color=col)
+    for xi, (lab_s, reg, key) in enumerate(supp):
+        av = st.median(raw.get(key + ("auto_v4",), [np.nan]))
+        ax3.hlines(av, xi - 0.42, xi + 0.42, color="#c62828", lw=1.6,
+                   ls="--", zorder=4)
+        ax3.text(xi + 0.42, av + 30, f"auto {av:.0f}", ha="right",
+                 fontsize=7.2, color="#c62828")
+    ax3.set_xticks(xs)
+    ax3.set_xticklabels([f"{s[0]}\n{r}" for s, r, _ in supp], fontsize=8.0)
+    ax3.set_ylabel("GFLOPS", fontsize=10)
+    ax3.set_ylim(4500, 10600)
+    ax3.legend(fontsize=7.6, ncol=5, loc="lower left")
+    ax3.grid(axis="y", alpha=0.3, zorder=0)
+    ax3.set_title("(c) supplementary first-test: dsk wins both 4:1 sizes "
+                  "(both regimes),\nstrk~=dsk >> deep @1024x2048 (zone rule; "
+                  "fidelity <=2pp all)",
+                  fontsize=9.0)
+    ax3.text(0.98, 0.02,
+             "run-1 '4096x256 blind spot' retracted:\n"
+             "auto last-in-seq rows throttled to 1740/1620 MHz\n"
+             "(clock artifact, gpu_state column evidence)",
+             transform=ax3.transAxes, ha="right", va="bottom", fontsize=6.8,
+             color="#37474f",
+             bbox=dict(fc="#fff3e0", ec="#ffb74d", pad=3.5))
+
+    fig.suptitle("AR011 T006 auto v4 (auto_ar011.csv, git=776a292 build): "
+                 "G5''' PASS / G4''' MISS / 3 first-tests",
+                 fontsize=13, fontweight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.savefig(os.path.join(OUT_DIR, "fig33_auto_v4.png"))
+    plt.close(fig)
+
+
+fig33_auto_v4()
+
 fig_gates_v4()
 fig_ladder_v4()
 
