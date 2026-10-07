@@ -119,7 +119,12 @@ n'  = g·G + r / grid_m
 **streamk（1D grid，u = c·nt + kt，c = m·grid_n + n）**：c→(m,n) 解码处套用
 同型分组重排（c 先线性分解 (n0,m) → 分组重排 → (m',n')）；**切点/cover/票据/P
 索引全部保持线性 c 空间不变**（slice(b,c)=b·SLOTS+(c-c_lo(b))、tick[c] 原样），
-仅物理 tile 坐标重排 → 每tile 链不变 → bitwise ✓。
+仅物理 tile 坐标重排。
+**数值口径修订（T004 实测裁定，2026-10-07）**：初稿"每tile 链不变 → bitwise"
+为分析笔误——切点 t0=b·U−c·nt 是 **c 的函数**（c·nt mod U 轮转），remap 把切点
+结构搬到不同物理 tile → 同物理 tile 的 K 分段括号序改变 → **非 bitwise**（suite
+实测 BITWISE-FAIL 证实）。按 srs 预声明③口径执行：rel≤1e-4 + 确定性双跑
+（PHASE 锚同型；remap 与 winner 身份无关 → 双跑确定成立）。
 
 **波足迹核算（2048³，G=8，deep t=128 块 2.67 波）**：
 - 线性（现状）：波 = 3m×16n → A 6.3MB + B 16.8MB（B 每波全宽重读）

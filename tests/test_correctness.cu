@@ -446,6 +446,64 @@ int main(int argc, char** argv) {
         sgemm::g_swz = swz;
         anchor_case("deep(swz=1) fallback tile2d @999x1001x997", g, r);
     }
+    {   // 锚 13（AR012 T004）：streamk swizzle 数值口径分级门（srs 预声明③：
+        //  链序可能变——切点 t0=b·U−c·nt 是 c 的函数，remap 使物理 tile 的
+        //  K 分段括号序改变 → 非 bitwise；T004 实测 BITWISE-FAIL 证实该预
+        //  声明、否证 design §4.2.1 笔误）。判据 = PHASE 锚同型：双跑逐位
+        //  确定 + vs swz=0 rel≤1e-4。@1024³ W=1：cover 1/2 混合双路径均
+        //  过 remap；marker g_launch_swz==1 显式断言（防静默忽略假绿）
+        const int swz = sgemm::g_swz;
+        std::vector<float> r, g1, g2;
+        run_dump(sgemm::K_STREAMK, 1024, 1024, 1024, r);   // swz=0 参照
+        sgemm::g_swz = 1;
+        run_dump(sgemm::K_STREAMK, 1024, 1024, 1024, g1);
+        run_dump(sgemm::K_STREAMK, 1024, 1024, 1024, g2);
+        const bool wired = (sgemm::g_launch_swz == 1);
+        sgemm::g_swz = swz;
+        ++total;
+        if (wired) ++passed; else all_ok = false;
+        std::printf("  %-58s  %s (g_launch_swz=%d)\n",
+                    "probe: --swz 1 -> streamk wrapper snapshot",
+                    wired ? "PASS" : "FAIL", sgemm::g_launch_swz);
+        anchor_case("streamk(swz=1) double-run determinism @1024^3", g1, g2);
+        ++total;
+        double max_abs = 0.0, max_ref = 0.0;
+        for (size_t i = 0; i < r.size(); ++i) {
+            const double d = std::fabs((double)g1[i] - r[i]);
+            if (d > max_abs) max_abs = d;
+            const double a = std::fabs(r[i]);
+            if (a > max_ref) max_ref = a;
+        }
+        const double rel = max_ref > 0.0 ? max_abs / max_ref : 0.0;
+        const bool ok = rel <= 1e-4;
+        if (ok) ++passed; else all_ok = false;
+        std::printf("  %-58s  %s (rel=%.3e)\n",
+                    "streamk(swz=1) vs swz=0 rel<=1e-4 @1024^3",
+                    ok ? "REL-PASS" : "REL-FAIL", rel);
+    }
+    {   // 锚 14（AR012 T004）：streamk 边界谓词 × swz1（部分 tile + 尾组
+        //  G_eff 收窄 + solo/cover 双路径，@1000x1016x516；rel 口径同锚 13）
+        const int swz = sgemm::g_swz;
+        std::vector<float> r, g;
+        run_dump(sgemm::K_STREAMK, 1000, 1016, 516, r);
+        sgemm::g_swz = 1;
+        run_dump(sgemm::K_STREAMK, 1000, 1016, 516, g);
+        sgemm::g_swz = swz;
+        ++total;
+        double max_abs = 0.0, max_ref = 0.0;
+        for (size_t i = 0; i < r.size(); ++i) {
+            const double d = std::fabs((double)g[i] - r[i]);
+            if (d > max_abs) max_abs = d;
+            const double a = std::fabs(r[i]);
+            if (a > max_ref) max_ref = a;
+        }
+        const double rel = max_ref > 0.0 ? max_abs / max_ref : 0.0;
+        const bool ok = rel <= 1e-4;
+        if (ok) ++passed; else all_ok = false;
+        std::printf("  %-58s  %s (rel=%.3e)\n",
+                    "streamk(swz=1) vs swz=0 rel<=1e-4 @1000x1016x516",
+                    ok ? "REL-PASS" : "REL-FAIL", rel);
+    }
 
     std::printf("==================================================================\n");
     std::printf(" SUMMARY: %d / %d PASS (incl. 9 bitwise/rel anchors)  ->  %s\n",

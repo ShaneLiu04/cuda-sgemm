@@ -60,6 +60,16 @@
 //
 // 同步契约（与 sgemm_deep.cu 的防漂移军规）：deep 主体布局/流水/swizzle
 // 变更必须同步本文件逐拷贝主体（AGENTS §2 自包含 + design §5.1）。
+//
+// AR012 T004 FR2：SWZ 模板维（实例 ×2）——swz=1 时 c→(m,n) 解码处套用
+// detail::swizzle_tile 分组列序重排（c 先线性分解 (n0,m0)=(c%gn, c/gn)，
+// 再重排得物理 (m',n')；组宽 G = 运行时参数 swz_g = g_swzg）。**切点/
+// cover/票据/P 槽位索引全部保持线性 c 空间不变**（slice(b,c)/tick[c]/b_lo/
+// b_hi 原样），仅物理 tile 坐标重排 → 每 tile 的 K 链与归并参与集不变
+// → swz on/off 输出逐位一致（bitwise 锚）。寄存器警示：本 kernel 255 regs
+// 顶格（launch_bounds(256,1) 包络），remap 临时量短命于 c 循环头，ptxas
+// 0 spill 硬门审计（SWZ=0 实例编译期剔除全部 remap 代码，现役 codegen
+// 不变——AR011 T004 手法）。
 // =====================================================================
 #include "sgemm_kernels.h"
 #include <cstdio>
@@ -94,15 +104,16 @@ __device__ __forceinline__ float4 load_zero_guard(const float* base, long long i
 
 // ---- Stream-K 主体（deep 计算主体逐拷贝 + tile 循环 + 三路径 epilogue）----
 // grid = (B, 1, 1) 一维；block (16, 16)。空块（b·U >= TOT）立即退出。
-template <int DBUF>
+template <int DBUF, int SWZ = 0>
 __global__ __launch_bounds__(256, 1)
 void sgemm_streamk_kernel(const float* __restrict__ A,
-                          const float* __restrict__ B,
-                          float* __restrict__ C,
-                          float* __restrict__ P,        // [B*SLOTS][BM*BN] 槽位
-                          unsigned int* __restrict__ tick, // [tiles] 自清洁票据
-                          int M, int N, int K,
-                          int U, int nt, int tiles, int grid_n, int SLOTS) {
+                           const float* __restrict__ B,
+                           float* __restrict__ C,
+                           float* __restrict__ P,        // [B*SLOTS][BM*BN] 槽位
+                           unsigned int* __restrict__ tick, // [tiles] 自清洁票据
+                           int M, int N, int K,
+                           int U, int nt, int tiles, int grid_n, int SLOTS,
+                           int swz_g) {
     __shared__ __align__(16) float As[DBUF ? 2 : 1][BK][BM + PAD_A];
     __shared__ __align__(16) float Bs[DBUF ? 2 : 1][BK][BN];
     __shared__ int s_winner;                       // 票据赢家标志（tid==0 写，全块读）
@@ -129,8 +140,17 @@ void sgemm_streamk_kernel(const float* __restrict__ A,
         // DBUF=0 每 tile 自带 S2 屏障，天然安全）
         if (DBUF && c > c_lo) __syncthreads();
 
-        const int bx = c % grid_n;                 // 本 tile 的全局 tile 坐标
-        const int by = c / grid_n;
+        int bx = c % grid_n;                        // 本 tile 的全局 tile 坐标
+        int by = c / grid_n;                        // （线性 c 空间 → (n0, m0)）
+        if (SWZ) {   // AR012 T004：分组列序重排（切点/票据/P 索引保持线性
+            //           c 空间不变，仅物理坐标变 → 每 tile 链不变 → bitwise）
+            const int grid_m = tiles / grid_n;
+            int m2, n2;
+            sgemm::detail::swizzle_tile(bx, by, grid_n, grid_m, 1, swz_g,
+                                        &m2, &n2);
+            by = m2;
+            bx = n2;
+        }
         const int t0 = max(u_lo - c * nt, 0);
         const int t1 = min(u_hi - c * nt, nt);     // t0 < t1 由 c∈[c_lo,c_hi] 保证
 
@@ -439,12 +459,29 @@ void sgemm_streamk(const float* A, const float* B, float* C,
     const dim3 grid(B_blocks);
     const dim3 block(16, 16, 1);
     sgemm::g_launch_skred = sgemm::g_skred;   // T001 接线探针（独立 kernel 由 T005 接入）
+    // AR012 T004：SWZ 实例维（c-decode 重排；组宽经参数；SWZ=0 现役 codegen
+    // 不变）+ swz 接线探针快照（与 deep/dsk 咽喉点同语义）
+    const int swz   = (sgemm::g_swz != 0) ? 1 : 0;
+    const int swz_g = sgemm::g_swzg;
+    sgemm::g_launch_swz = sgemm::g_swz;
     if (sgemm::g_deep_dbuf) {
-        sgemm_streamk_kernel<1><<<grid, block>>>(
-            A, B, C, g_ws.p, g_ws.tick, M, N, K, U, nt, tiles, grid_n, SLOTS);
+        if (swz)
+            sgemm_streamk_kernel<1, 1><<<grid, block>>>(
+                A, B, C, g_ws.p, g_ws.tick, M, N, K, U, nt, tiles, grid_n,
+                SLOTS, swz_g);
+        else
+            sgemm_streamk_kernel<1, 0><<<grid, block>>>(
+                A, B, C, g_ws.p, g_ws.tick, M, N, K, U, nt, tiles, grid_n,
+                SLOTS, swz_g);
     } else {
-        sgemm_streamk_kernel<0><<<grid, block>>>(
-            A, B, C, g_ws.p, g_ws.tick, M, N, K, U, nt, tiles, grid_n, SLOTS);
+        if (swz)
+            sgemm_streamk_kernel<0, 1><<<grid, block>>>(
+                A, B, C, g_ws.p, g_ws.tick, M, N, K, U, nt, tiles, grid_n,
+                SLOTS, swz_g);
+        else
+            sgemm_streamk_kernel<0, 0><<<grid, block>>>(
+                A, B, C, g_ws.p, g_ws.tick, M, N, K, U, nt, tiles, grid_n,
+                SLOTS, swz_g);
     }
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {

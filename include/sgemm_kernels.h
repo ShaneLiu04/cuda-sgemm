@@ -177,7 +177,8 @@ extern int g_skred;                // --skred，streamk cover 归约路径，默
                                      //   独立归约 kernel design §4.2.2；链≡F2 → bitwise）
 // ---- 测试接线探针（AR012 T001；wrapper 写、suite 读，防"旋钮已注册但 kernel
 //      静默忽略"——深/dsk/streamk wrapper 每次 launch 记录实际生效的旋钮值）----
-extern int g_launch_swz;           // 最近一次 deep/dsk launch 的 g_swz 快照（-1 = 未启动）
+extern int g_launch_swz;           // 最近一次 deep/dsk/streamk launch 的 g_swz 快照
+                                    //   （-1 = 未启动；T004 起含 streamk c-decode 重排）
 extern int g_launch_skred;         // 最近一次 streamk launch 的 g_skred 快照（-1 = 未启动）
 extern bool g_verbose;           // 打印回退路径细节（测试断言路径覆盖用）
 }
